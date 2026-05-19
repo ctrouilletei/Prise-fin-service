@@ -51,7 +51,7 @@ async function queryAll(dbId, filter) {
   let results = [], cursor;
   do {
     const body = { page_size: 100, ...(filter ? {filter} : {}), ...(cursor ? {start_cursor: cursor} : {}) };
-    const res = await notionRequest('POST', `databases/${dbId}/query`, body);
+    const res = await notionRequest('POST', `databases/${dbId}/query`, body);console.log('Notion response:', JSON.stringify(res).slice(0, 500));
     results = results.concat(res.results || []);
     cursor = res.has_more ? res.next_cursor : null;
   } while (cursor);

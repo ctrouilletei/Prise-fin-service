@@ -72,6 +72,7 @@ const server = http.createServer((req, res) => {
   // ── STATIC FILES ───────────────────────────────────────────────────────────
   let filePath = parsedUrl.pathname === '/' ? '/index.html' : parsedUrl.pathname;
 filePath = path.join(__dirname, filePath);
+  
   const ext = path.extname(filePath);
   const mimeTypes = {
     '.html': 'text/html',

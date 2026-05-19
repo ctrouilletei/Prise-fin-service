@@ -117,13 +117,11 @@ async function handleAPI(req, res, pathname) {
           return {
             id: p.id,
             nom: props['Nom']?.title?.[0]?.plain_text || '',
-cartePro: props['Carte Pro']?.rich_text?.[0]?.plain_text || props['Carte Pro']?.title?.[0]?.plain_text || props['Carte Pro']?.phone_number || '1234',            prestationId: presta?.id || null,
-            prestationNom: presta?.properties?.['Nom']?.title?.[0]?.plain_text || null,
+cartePro: props['Carte Pro']?.rich_text?.[0]?.plain_text || '0000',            prestationNom: presta?.properties?.['Nom']?.title?.[0]?.plain_text || null,
             client: presta?.properties?.['🏢 Clients / Entreprises']?.relation?.[0]?.id || null
           };
         })
-        .filter(a => a.nom && a.cartePro && a.cartePro.length >= 4);
-
+.filter(a => a.nom);
       res.writeHead(200, {'Content-Type': 'application/json'});
       res.end(JSON.stringify({ agents }));
     } catch(e) {

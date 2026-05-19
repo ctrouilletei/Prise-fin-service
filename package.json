@@ -1,0 +1,12 @@
+{
+  "name": "jet-guards-prise-de-service",
+  "version": "1.0.0",
+  "description": "Application de prise de service Jet Guards",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

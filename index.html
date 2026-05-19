@@ -1,0 +1,899 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Jet Guards — Prise de Service</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --gold: #C9A84C;
+    --gold-light: #F5E6C0;
+    --gold-dark: #9A7A30;
+    --black: #0E0E0E;
+    --dark: #1A1A1A;
+    --dark2: #242424;
+    --dark3: #2E2E2E;
+    --gray: #888;
+    --gray-light: #555;
+    --white: #F8F5EF;
+    --red: #E24B4A;
+    --green: #1D9E75;
+    --green-light: #EAF3DE;
+    --red-light: #FCEBEB;
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+
+  html, body {
+    min-height: 100vh;
+    background: var(--black);
+    font-family: 'Syne', sans-serif;
+    color: var(--white);
+    overscroll-behavior: none;
+  }
+
+  .app {
+    max-width: 420px;
+    margin: 0 auto;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    padding-bottom: 32px;
+  }
+
+  /* HEADER */
+  .header {
+    padding: 20px 20px 16px;
+    border-bottom: 1px solid var(--dark3);
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    background: var(--black);
+    z-index: 100;
+  }
+  .header-brand { display: flex; flex-direction: column; gap: 2px; }
+  .brand-tag { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--gray); letter-spacing: 0.15em; text-transform: uppercase; }
+  .brand-name { font-size: 20px; font-weight: 700; color: var(--white); letter-spacing: -0.02em; }
+  .brand-name span { color: var(--gold); }
+  .geo-pill {
+    display: flex; align-items: center; gap: 5px;
+    padding: 5px 10px; border-radius: 20px;
+    border: 1px solid var(--dark3);
+    font-family: 'DM Mono', monospace;
+    font-size: 10px; color: var(--gray);
+    transition: all 0.3s;
+  }
+  .geo-pill.ok { border-color: var(--green); color: var(--green); }
+  .geo-pill.err { border-color: var(--red); color: var(--red); }
+  .geo-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+  .geo-dot.pulse { animation: pulse 1.5s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  /* CLOCK BAR */
+  .clock-bar {
+    margin: 16px 20px 0;
+    background: var(--dark);
+    border-radius: var(--radius-sm);
+    padding: 12px 16px;
+    display: flex; align-items: center; justify-content: space-between;
+    border: 1px solid var(--dark3);
+  }
+  .clock-date { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--gray); }
+  .clock-time { font-family: 'DM Mono', monospace; font-size: 16px; color: var(--gold); font-weight: 500; letter-spacing: 0.05em; }
+
+  /* SITE INFO */
+  .site-banner {
+    margin: 12px 20px 0;
+    background: var(--dark2);
+    border-radius: var(--radius-sm);
+    padding: 12px 16px;
+    border: 1px solid var(--dark3);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .site-icon { font-size: 20px; flex-shrink: 0; }
+  .site-name { font-size: 15px; font-weight: 500; color: var(--white); }
+  .site-sub { font-size: 11px; color: var(--gray); font-family: 'DM Mono', monospace; }
+
+  /* BODY */
+  .body { padding: 16px 20px; display: flex; flex-direction: column; gap: 20px; flex: 1; }
+
+  /* TYPE SELECTOR */
+  .type-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .type-card {
+    background: var(--dark);
+    border: 1px solid var(--dark3);
+    border-radius: var(--radius);
+    padding: 16px 12px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .type-card::before {
+    content: '';
+    position: absolute; inset: 0;
+    opacity: 0; transition: opacity 0.2s;
+  }
+  .type-card.debut::before { background: linear-gradient(135deg, rgba(29,158,117,0.1), transparent); }
+  .type-card.fin::before { background: linear-gradient(135deg, rgba(226,75,74,0.1), transparent); }
+  .type-card.selected.debut { border-color: var(--green); }
+  .type-card.selected.fin { border-color: var(--red); }
+  .type-card.selected::before { opacity: 1; }
+  .type-icon { font-size: 28px; margin-bottom: 8px; display: block; }
+  .type-label { font-size: 13px; font-weight: 500; color: var(--white); }
+  .type-sub { font-size: 10px; color: var(--gray); font-family: 'DM Mono', monospace; margin-top: 2px; }
+
+  /* FIELD */
+  .field { display: flex; flex-direction: column; gap: 8px; }
+  .field-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px; color: var(--gray);
+    letter-spacing: 0.12em; text-transform: uppercase;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .field-label .req { color: var(--gold); }
+
+  /* SEARCH */
+  .search-wrap { position: relative; }
+  .search-wrap svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; stroke: var(--gray); fill: none; stroke-width: 2; }
+  .search-wrap input { padding-left: 38px; }
+  input[type=text], input[type=password] {
+    width: 100%;
+    background: var(--dark);
+    border: 1px solid var(--dark3);
+    border-radius: var(--radius-sm);
+    color: var(--white);
+    font-family: 'Syne', sans-serif;
+    font-size: 15px;
+    padding: 11px 14px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  input:focus { border-color: var(--gold); }
+  input::placeholder { color: var(--gray-light); }
+
+  /* AGENT LIST */
+  .agent-list {
+    background: var(--dark);
+    border: 1px solid var(--dark3);
+    border-radius: var(--radius-sm);
+    max-height: 200px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--dark3) transparent;
+  }
+  .agent-row {
+    padding: 11px 14px;
+    display: flex; align-items: center; gap: 12px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--dark3);
+    transition: background 0.15s;
+  }
+  .agent-row:last-child { border-bottom: none; }
+  .agent-row:hover { background: var(--dark2); }
+  .agent-row.selected { background: rgba(201,168,76,0.08); border-left: 2px solid var(--gold); }
+  .avatar {
+    width: 34px; height: 34px; border-radius: 50%;
+    background: var(--dark2); border: 1px solid var(--dark3);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px; color: var(--gold); flex-shrink: 0;
+  }
+  .agent-row.selected .avatar { background: rgba(201,168,76,0.15); border-color: var(--gold); }
+  .agent-info { flex: 1; min-width: 0; }
+  .agent-name { font-size: 14px; font-weight: 500; color: var(--white); }
+  .agent-meta { font-size: 11px; color: var(--gray); font-family: 'DM Mono', monospace; }
+  .empty-list { padding: 20px; text-align: center; color: var(--gray); font-size: 13px; font-family: 'DM Mono', monospace; }
+
+  /* PIN */
+  .pin-field input {
+    letter-spacing: 0.4em;
+    font-size: 22px;
+    font-family: 'DM Mono', monospace;
+    text-align: center;
+    font-weight: 500;
+  }
+  .pin-field input.ok { border-color: var(--green); color: var(--green); }
+  .pin-field input.err { border-color: var(--red); }
+  .pin-hint { font-size: 11px; color: var(--gray); font-family: 'DM Mono', monospace; display: flex; align-items: center; gap: 5px; }
+
+  /* ALERT */
+  .alert {
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+    font-size: 12px;
+    font-family: 'DM Mono', monospace;
+    display: none; align-items: center; gap: 8px;
+  }
+  .alert.danger { background: rgba(226,75,74,0.1); border: 1px solid rgba(226,75,74,0.3); color: #F09595; }
+  .alert.success { background: rgba(29,158,117,0.1); border: 1px solid rgba(29,158,117,0.3); color: #5DCAA5; }
+  .alert.show { display: flex; }
+
+  /* SIGNATURE */
+  .sig-wrap {
+    background: var(--dark);
+    border: 1px solid var(--dark3);
+    border-radius: var(--radius-sm);
+    padding: 8px;
+  }
+  canvas {
+    width: 100%; height: 120px; display: block;
+    background: #fff; border-radius: 4px;
+    touch-action: none; cursor: crosshair;
+  }
+  .sig-footer { display: flex; justify-content: flex-end; margin-top: 6px; }
+  .btn-clear {
+    background: none; border: none; color: var(--gray);
+    font-family: 'DM Mono', monospace; font-size: 11px;
+    cursor: pointer; display: flex; align-items: center; gap: 4px;
+    padding: 4px 0;
+  }
+  .btn-clear:hover { color: var(--white); }
+
+  /* SUBMIT */
+  .btn-submit {
+    width: 100%;
+    background: var(--gold);
+    color: var(--black);
+    border: none;
+    border-radius: var(--radius);
+    padding: 15px;
+    font-family: 'Syne', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    letter-spacing: 0.02em;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .btn-submit:hover { background: #D4A940; transform: translateY(-1px); }
+  .btn-submit:active { transform: translateY(0); }
+  .btn-submit:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
+
+  /* SCREENS */
+  .screen { display: none; }
+  .screen.active { display: flex; flex-direction: column; }
+
+  /* LOADING OVERLAY */
+  .overlay {
+    position: fixed; inset: 0;
+    background: rgba(14,14,14,0.92);
+    display: none; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 16px; z-index: 200;
+  }
+  .overlay.show { display: flex; }
+  .spinner {
+    width: 36px; height: 36px;
+    border: 2px solid var(--dark3);
+    border-top-color: var(--gold);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .overlay-msg { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--gray); }
+
+  /* SUCCESS SCREEN */
+  #screen-success {
+    align-items: center; justify-content: center;
+    text-align: center; gap: 20px;
+    padding: 40px 20px; min-height: 80vh;
+  }
+  .success-ring {
+    width: 80px; height: 80px; border-radius: 50%;
+    border: 2px solid var(--gold);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 36px;
+    animation: ring-in 0.5s ease;
+  }
+  @keyframes ring-in { from{transform:scale(0.5);opacity:0} to{transform:scale(1);opacity:1} }
+  .success-title { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; }
+  .success-title span { color: var(--gold); }
+  .success-detail {
+    background: var(--dark);
+    border: 1px solid var(--dark3);
+    border-radius: var(--radius);
+    padding: 16px 20px; width: 100%; text-align: left;
+  }
+  .detail-row { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; border-bottom: 1px solid var(--dark3); }
+  .detail-row:last-child { border-bottom: none; }
+  .detail-key { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--gray); text-transform: uppercase; }
+  .detail-val { font-size: 13px; color: var(--white); font-weight: 500; }
+  .badge { padding: 3px 8px; border-radius: 20px; font-size: 11px; font-family: 'DM Mono', monospace; }
+  .badge.green { background: rgba(29,158,117,0.15); color: #5DCAA5; border: 1px solid rgba(29,158,117,0.3); }
+  .badge.red { background: rgba(226,75,74,0.15); color: #F09595; border: 1px solid rgba(226,75,74,0.3); }
+  .btn-new {
+    width: 100%;
+    background: var(--dark);
+    border: 1px solid var(--dark3);
+    border-radius: var(--radius);
+    color: var(--white);
+    font-family: 'Syne', sans-serif;
+    font-size: 14px;
+    padding: 13px;
+    cursor: pointer;
+    transition: border-color 0.2s;
+  }
+  .btn-new:hover { border-color: var(--gold); color: var(--gold); }
+
+  /* BLOCKED SCREEN */
+  #screen-blocked {
+    align-items: center; justify-content: center;
+    text-align: center; gap: 16px;
+    padding: 40px 20px; min-height: 80vh;
+  }
+  .blocked-icon { font-size: 48px; }
+  .blocked-title { font-size: 18px; font-weight: 700; color: var(--red); }
+  .blocked-sub { font-size: 13px; color: var(--gray); line-height: 1.6; max-width: 280px; font-family: 'DM Mono', monospace; }
+
+  /* GEO INFO */
+  .geo-info {
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+    font-size: 12px;
+    font-family: 'DM Mono', monospace;
+    display: flex; align-items: flex-start; gap: 8px;
+    background: var(--dark);
+    border: 1px solid var(--dark3);
+    color: var(--gray);
+    transition: all 0.3s;
+  }
+  .geo-info.ok { border-color: rgba(29,158,117,0.4); color: #5DCAA5; background: rgba(29,158,117,0.05); }
+  .geo-info.err { border-color: rgba(226,75,74,0.3); color: #F09595; background: rgba(226,75,74,0.05); }
+  .geo-info-icon { flex-shrink: 0; font-size: 14px; }
+
+  /* PRESTATION BADGE */
+  .presta-badge {
+    background: rgba(201,168,76,0.08);
+    border: 1px solid rgba(201,168,76,0.25);
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .presta-badge-icon { font-size: 18px; flex-shrink: 0; }
+  .presta-name { font-size: 13px; font-weight: 500; color: var(--gold); }
+  .presta-sub { font-size: 11px; color: var(--gray); font-family: 'DM Mono', monospace; }
+
+  /* NOT ASSIGNED */
+  .not-assigned {
+    background: rgba(226,75,74,0.08);
+    border: 1px solid rgba(226,75,74,0.25);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    font-size: 12px;
+    font-family: 'DM Mono', monospace;
+    color: #F09595;
+    display: none;
+    align-items: center; gap: 8px;
+  }
+  .not-assigned.show { display: flex; }
+
+  /* DIVIDER */
+  .divider { height: 1px; background: var(--dark3); margin: 4px 0; }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <header class="header">
+    <div class="header-brand">
+      <div class="brand-tag">Jet Guards</div>
+      <div class="brand-name">Prise de <span>service</span></div>
+    </div>
+    <div class="geo-pill" id="geo-pill">
+      <div class="geo-dot pulse" id="geo-dot"></div>
+      <span id="geo-pill-txt">GPS...</span>
+    </div>
+  </header>
+
+  <!-- SITE BANNER (populated from URL param) -->
+  <div class="site-banner" id="site-banner" style="display:none">
+    <div class="site-icon">🏟️</div>
+    <div>
+      <div class="site-name" id="site-name-display">—</div>
+      <div class="site-sub" id="site-sub-display">Scannez pour pointer</div>
+    </div>
+  </div>
+
+  <div class="clock-bar">
+    <div class="clock-date" id="clock-date">—</div>
+    <div class="clock-time" id="clock-time">—</div>
+  </div>
+
+  <!-- FORM SCREEN -->
+  <div id="screen-form" class="screen active">
+    <div class="body">
+
+      <!-- TYPE -->
+      <div class="field">
+        <div class="field-label">Type de pointage <span class="req">*</span></div>
+        <div class="type-grid">
+          <div class="type-card debut selected" id="card-debut" onclick="selectType('debut')">
+            <span class="type-icon">🟢</span>
+            <div class="type-label">Début de service</div>
+            <div class="type-sub">PRISE DE POSTE</div>
+          </div>
+          <div class="type-card fin" id="card-fin" onclick="selectType('fin')">
+            <span class="type-icon">🔴</span>
+            <div class="type-label">Fin de service</div>
+            <div class="type-sub">FIN DE VACATION</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- GPS -->
+      <div class="field">
+        <div class="field-label">Géolocalisation</div>
+        <div class="geo-info" id="geo-info">
+          <span class="geo-info-icon">⏳</span>
+          <span id="geo-info-txt">Localisation en cours...</span>
+        </div>
+      </div>
+
+      <!-- AGENT SEARCH -->
+      <div class="field">
+        <div class="field-label">Mon nom <span class="req">*</span></div>
+        <div class="search-wrap" style="margin-bottom:8px">
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input type="text" id="search-input" placeholder="Rechercher mon nom..." oninput="filterAgents(this.value)" autocomplete="off">
+        </div>
+        <div class="agent-list" id="agent-list">
+          <div class="empty-list" id="list-placeholder">⏳ Chargement des agents...</div>
+        </div>
+        <div class="not-assigned" id="not-assigned">
+          ⛔ Vous n'êtes pas affecté à une prestation active sur ce site aujourd'hui.
+        </div>
+      </div>
+
+      <!-- PRESTATION AUTO-DÉTECTÉE -->
+      <div class="field" id="presta-field" style="display:none">
+        <div class="field-label">Prestation détectée</div>
+        <div class="presta-badge">
+          <div class="presta-badge-icon">📋</div>
+          <div>
+            <div class="presta-name" id="presta-name">—</div>
+            <div class="presta-sub" id="presta-sub">—</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PIN -->
+      <div class="field pin-field" id="pin-field" style="display:none">
+        <div class="field-label">Code de vérification <span class="req">*</span></div>
+        <input type="password" inputmode="numeric" maxlength="4" id="pin-input" placeholder="••••" oninput="onPin(this.value)" autocomplete="off">
+        <div class="pin-hint">🔐 4 derniers chiffres de votre carte professionnelle CNAPS</div>
+        <div class="alert danger" id="pin-alert"></div>
+        <div class="alert success" id="pin-ok">✓ Identité vérifiée</div>
+      </div>
+
+      <!-- SIGNATURE -->
+      <div class="field" id="sig-field" style="display:none">
+        <div class="field-label">Signature <span class="req">*</span></div>
+        <div class="sig-wrap">
+          <canvas id="sig-canvas" width="800" height="240"></canvas>
+          <div class="sig-footer">
+            <button class="btn-clear" onclick="clearSig()">✕ Effacer</button>
+          </div>
+        </div>
+        <div class="alert danger" id="sig-alert" style="margin-top:6px"></div>
+      </div>
+
+      <!-- SUBMIT -->
+      <button class="btn-submit" id="btn-submit" onclick="submit()" style="display:none" disabled>
+        ✓ Valider ma prise de service
+      </button>
+
+    </div>
+  </div>
+
+  <!-- SUCCESS SCREEN -->
+  <div id="screen-success" class="screen">
+    <div class="success-ring" id="success-ring">✓</div>
+    <div class="success-title">Pointage <span>enregistré</span></div>
+    <div class="success-detail" id="success-detail"></div>
+    <button class="btn-new" onclick="reset()">↺ Nouveau pointage</button>
+  </div>
+
+  <!-- BLOCKED SCREEN -->
+  <div id="screen-blocked" class="screen">
+    <div class="blocked-icon">🔒</div>
+    <div class="blocked-title">Accès bloqué</div>
+    <div class="blocked-sub" id="blocked-msg">3 tentatives incorrectes. Contactez votre coordinateur.</div>
+    <button class="btn-new" onclick="unblock()" style="margin-top:8px">↺ Réessayer</button>
+  </div>
+</div>
+
+<!-- LOADING OVERLAY -->
+<div class="overlay" id="overlay">
+  <div class="spinner"></div>
+  <div class="overlay-msg" id="overlay-msg">Connexion à Notion...</div>
+</div>
+
+<script>
+// ─── CONFIG ───────────────────────────────────────────────────────────────────
+const NOTION_MCP   = "https://mcp.notion.com/mcp";
+const AGENTS_DS    = "collection://214a1237-6ab3-801b-9c5c-000b3008754a";
+const PRESTAS_DS   = "collection://328a1237-6ab3-8079-b7f5-000b90d1c58a";
+const POINTAGES_DB = "b0b4acfd6dac4d06a41d66c658675d8c";
+const POINTAGES_DS = "collection://49a03229-eea3-49aa-9321-e63195fd1a58";
+const MAX_ATTEMPTS = 3;
+const MODEL        = "claude-sonnet-4-20250514";
+
+// ─── STATE ────────────────────────────────────────────────────────────────────
+let state = {
+  type: 'debut',
+  siteId: null,
+  siteName: null,
+  agents: [],
+  selectedAgent: null,
+  prestation: null,
+  pinVerified: false,
+  pinAttempts: 0,
+  sigDrawn: false,
+  geo: null,
+  geoError: false,
+};
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  initClock();
+  initGeo();
+  parseSiteFromURL();
+});
+
+function parseSiteFromURL() {
+  const params = new URLSearchParams(window.location.search);
+  const siteId = params.get('site');
+  const siteName = params.get('nom') ? decodeURIComponent(params.get('nom')) : null;
+  if (siteId) {
+    state.siteId = siteId;
+    state.siteName = siteName || 'Site';
+    document.getElementById('site-banner').style.display = 'flex';
+    document.getElementById('site-name-display').textContent = state.siteName;
+    document.getElementById('site-sub-display').textContent = 'Prestation détectée automatiquement';
+    loadAgents(siteId);
+  } else {
+    // Mode démo sans QR code — charge tous les agents
+    document.getElementById('site-sub-display').textContent = 'Mode test — aucun site sélectionné';
+    loadAgents(null);
+  }
+}
+
+// ─── CLOCK ────────────────────────────────────────────────────────────────────
+function initClock() {
+  const tick = () => {
+    const now = new Date();
+    const d = now.toLocaleDateString('fr-FR', { weekday:'long', day:'2-digit', month:'long' });
+    document.getElementById('clock-date').textContent = d.charAt(0).toUpperCase() + d.slice(1);
+    document.getElementById('clock-time').textContent = now.toLocaleTimeString('fr-FR', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+  };
+  tick(); setInterval(tick, 1000);
+}
+
+// ─── GEO ──────────────────────────────────────────────────────────────────────
+function initGeo() {
+  if (!navigator.geolocation) { setGeoErr("GPS non disponible"); return; }
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      state.geo = { lat: pos.coords.latitude, lng: pos.coords.longitude, acc: Math.round(pos.coords.accuracy) };
+      const pill = document.getElementById('geo-pill');
+      pill.className = 'geo-pill ok';
+      document.getElementById('geo-dot').className = 'geo-dot';
+      document.getElementById('geo-pill-txt').textContent = 'GPS ✓';
+      const info = document.getElementById('geo-info');
+      info.className = 'geo-info ok';
+      document.getElementById('geo-info-txt').textContent = `Position capturée — précision ±${state.geo.acc}m`;
+    },
+    err => {
+      const msgs = {1:'Permission refusée', 2:'Signal indisponible', 3:'Délai dépassé'};
+      setGeoErr(msgs[err.code] || 'Erreur GPS');
+    },
+    { timeout: 12000, enableHighAccuracy: true }
+  );
+}
+function setGeoErr(msg) {
+  state.geoError = true;
+  const pill = document.getElementById('geo-pill');
+  pill.className = 'geo-pill err';
+  document.getElementById('geo-dot').className = 'geo-dot';
+  document.getElementById('geo-pill-txt').textContent = 'GPS ✗';
+  const info = document.getElementById('geo-info');
+  info.className = 'geo-info err';
+  document.getElementById('geo-info-txt').textContent = msg + ' — pointage autorisé sans GPS';
+}
+
+// ─── TYPE SELECTOR ────────────────────────────────────────────────────────────
+function selectType(t) {
+  state.type = t;
+  document.getElementById('card-debut').classList.toggle('selected', t === 'debut');
+  document.getElementById('card-fin').classList.toggle('selected', t === 'fin');
+}
+
+// ─── AGENTS ───────────────────────────────────────────────────────────────────
+async function loadAgents(siteId) {
+  try {
+    const prompt = siteId
+      ? `Via Notion MCP, liste les agents de la base ${AGENTS_DS} qui sont liés à une prestation active aujourd'hui (vérifie le champ "Période de prestation") sur le site dont l'ID de page Notion est "${siteId}". Pour chaque agent donne: url de page, Nom, Carte Pro, et l'URL de la prestation correspondante + son nom. Réponds UNIQUEMENT en JSON: {"agents": [{"id":"url","nom":"Nom","cartePro":"XX","prestationId":"url","prestationNom":"Nom prestation","client":"Client"}]}`
+      : `Via Notion MCP, liste tous les agents de ${AGENTS_DS}. Pour chaque agent: url, Nom, Carte Pro. JSON uniquement: {"agents":[{"id":"url","nom":"Nom","cartePro":"XX"}]}`;
+
+    const data = await callClaude(prompt, 2000);
+    const tb = data.content.find(b => b.type === 'text');
+    if (!tb) throw new Error();
+    const parsed = JSON.parse(tb.text.replace(/```json|```/g,'').trim());
+    state.agents = (parsed.agents || []).filter(a => a.cartePro && a.cartePro.length >= 4);
+    renderAgents(state.agents);
+  } catch(e) {
+    document.getElementById('list-placeholder').textContent = '⚠ Erreur — appuyez pour réessayer';
+    document.getElementById('list-placeholder').onclick = () => loadAgents(siteId);
+  }
+}
+
+function renderAgents(agents) {
+  const list = document.getElementById('agent-list');
+  if (!agents.length) {
+    list.innerHTML = '<div class="empty-list">Aucun agent trouvé</div>';
+    return;
+  }
+  list.innerHTML = agents.map(a => {
+    const initials = a.nom.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
+    const sel = state.selectedAgent && state.selectedAgent.id === a.id;
+    return `<div class="agent-row${sel?' selected':''}" onclick='selectAgent(${escJson(a)})'>
+      <div class="avatar">${initials}</div>
+      <div class="agent-info">
+        <div class="agent-name">${a.nom}</div>
+        <div class="agent-meta">Carte Pro: ${a.cartePro || '—'}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function escJson(obj) { return JSON.stringify(obj).replace(/'/g,"&#39;"); }
+
+function filterAgents(q) {
+  const f = q.toLowerCase();
+  renderAgents(state.agents.filter(a => a.nom.toLowerCase().includes(f)));
+}
+
+function selectAgent(agent) {
+  state.selectedAgent = agent;
+  state.pinVerified = false;
+  state.pinAttempts = 0;
+
+  // Reset PIN
+  document.getElementById('pin-input').value = '';
+  document.getElementById('pin-input').className = '';
+  document.getElementById('pin-alert').className = 'alert danger';
+  document.getElementById('pin-ok').className = 'alert success';
+
+  // Re-render list
+  filterAgents(document.getElementById('search-input').value);
+
+  // Check prestation
+  if (agent.prestationId) {
+    document.getElementById('presta-field').style.display = 'flex';
+    document.getElementById('presta-name').textContent = agent.prestationNom || 'Prestation du jour';
+    document.getElementById('presta-sub').textContent = agent.client || '';
+    state.prestation = { id: agent.prestationId, nom: agent.prestationNom };
+    document.getElementById('not-assigned').className = 'not-assigned';
+    showPinField();
+  } else if (state.siteId) {
+    // Agent trouvé mais pas sur prestation active
+    document.getElementById('presta-field').style.display = 'none';
+    document.getElementById('not-assigned').className = 'not-assigned show';
+    document.getElementById('pin-field').style.display = 'none';
+    document.getElementById('sig-field').style.display = 'none';
+    document.getElementById('btn-submit').style.display = 'none';
+  } else {
+    // Mode sans site — pas de vérification prestation
+    document.getElementById('presta-field').style.display = 'none';
+    showPinField();
+  }
+}
+
+function showPinField() {
+  document.getElementById('not-assigned').className = 'not-assigned';
+  document.getElementById('pin-field').style.display = 'flex';
+  document.getElementById('sig-field').style.display = 'none';
+  document.getElementById('btn-submit').style.display = 'none';
+  setTimeout(() => document.getElementById('pin-input').focus(), 100);
+}
+
+// ─── PIN ──────────────────────────────────────────────────────────────────────
+function onPin(val) {
+  if (val.length === 4) verifyPin(val);
+}
+
+function verifyPin(entered) {
+  const cartePro = (state.selectedAgent.cartePro || '').replace(/\s|-/g,'');
+  const last4 = cartePro.slice(-4);
+  if (entered === last4) {
+    state.pinVerified = true;
+    document.getElementById('pin-input').className = 'ok';
+    document.getElementById('pin-alert').className = 'alert danger';
+    document.getElementById('pin-ok').className = 'alert success show';
+    document.getElementById('sig-field').style.display = 'flex';
+    document.getElementById('btn-submit').style.display = 'flex';
+    document.getElementById('btn-submit').disabled = false;
+  } else {
+    state.pinAttempts++;
+    document.getElementById('pin-input').value = '';
+    document.getElementById('pin-input').className = 'err';
+    if (state.pinAttempts >= MAX_ATTEMPTS) {
+      blockUser();
+    } else {
+      const r = MAX_ATTEMPTS - state.pinAttempts;
+      document.getElementById('pin-alert').textContent = `Code incorrect — ${r} tentative${r>1?'s':''} restante${r>1?'s':''}`;
+      document.getElementById('pin-alert').className = 'alert danger show';
+    }
+  }
+}
+
+function blockUser() {
+  show('screen-blocked');
+  document.getElementById('blocked-msg').textContent =
+    `3 tentatives incorrectes pour ${state.selectedAgent.nom}. Contactez votre coordinateur si vous avez oublié les 4 derniers chiffres de votre carte pro.`;
+}
+
+function unblock() {
+  state.selectedAgent = null;
+  state.pinAttempts = 0;
+  state.pinVerified = false;
+  document.getElementById('pin-field').style.display = 'none';
+  document.getElementById('sig-field').style.display = 'none';
+  document.getElementById('btn-submit').style.display = 'none';
+  document.getElementById('search-input').value = '';
+  renderAgents(state.agents);
+  show('screen-form');
+}
+
+// ─── SIGNATURE ────────────────────────────────────────────────────────────────
+const canvas = document.getElementById('sig-canvas');
+const ctx = canvas.getContext('2d');
+ctx.strokeStyle = '#111'; ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+let drawing = false;
+
+function pos(e) {
+  const r = canvas.getBoundingClientRect();
+  const sx = canvas.width/r.width, sy = canvas.height/r.height;
+  const s = e.touches ? e.touches[0] : e;
+  return { x:(s.clientX-r.left)*sx, y:(s.clientY-r.top)*sy };
+}
+canvas.addEventListener('mousedown', e=>{drawing=true; const p=pos(e); ctx.beginPath(); ctx.moveTo(p.x,p.y);});
+canvas.addEventListener('mousemove', e=>{if(!drawing)return; const p=pos(e); ctx.lineTo(p.x,p.y); ctx.stroke(); state.sigDrawn=true;});
+canvas.addEventListener('mouseup', ()=>drawing=false);
+canvas.addEventListener('touchstart', e=>{e.preventDefault(); drawing=true; const p=pos(e); ctx.beginPath(); ctx.moveTo(p.x,p.y);},{passive:false});
+canvas.addEventListener('touchmove', e=>{e.preventDefault(); if(!drawing)return; const p=pos(e); ctx.lineTo(p.x,p.y); ctx.stroke(); state.sigDrawn=true;},{passive:false});
+canvas.addEventListener('touchend', ()=>drawing=false);
+function clearSig() { ctx.clearRect(0,0,canvas.width,canvas.height); state.sigDrawn=false; }
+
+// ─── SUBMIT ───────────────────────────────────────────────────────────────────
+async function submit() {
+  if (!state.sigDrawn) {
+    document.getElementById('sig-alert').textContent = 'Veuillez signer avant de valider';
+    document.getElementById('sig-alert').className = 'alert danger show';
+    return;
+  }
+  showOverlay('Enregistrement dans Notion...');
+  const now = new Date();
+  const heure = now.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+  const typeLabel = state.type === 'debut' ? 'Début de service' : 'Fin de service';
+  const geoStr = state.geo ? `${state.geo.lat.toFixed(5)}, ${state.geo.lng.toFixed(5)} (±${state.geo.acc}m)` : 'Non disponible';
+  const nomPage = `${typeLabel} — ${state.selectedAgent.nom} — ${heure}`;
+
+  const relAgent = state.selectedAgent.id;
+  const relPresta = state.prestation ? state.prestation.id : null;
+  const relSite = state.siteId ? `https://www.notion.so/${state.siteId.replace(/-/g,'')}` : null;
+
+  const prompt = `Crée une page dans la base Notion ${POINTAGES_DS}.
+Propriétés:
+- Nom (titre): "${nomPage}"
+- Type: "${typeLabel}"
+- Horodatage: "${now.toISOString()}" (datetime)
+- Agent (relation): "${relAgent}"
+${relPresta ? `- Prestation (relation): "${relPresta}"` : ''}
+${relSite ? `- Site (relation): "${relSite}"` : ''}
+- PIN vérifié: true (checkbox)
+- GPS: "${geoStr}"
+- Statut vacation: "${state.type === 'debut' ? 'En poste' : 'Terminé'}"
+
+Contenu de la page:
+## Détails du pointage
+- Agent: ${state.selectedAgent.nom}
+- Carte Pro: ${state.selectedAgent.cartePro}
+- Type: ${typeLabel}
+- Horodatage: ${now.toLocaleString('fr-FR')}
+- GPS: ${geoStr}
+- PIN vérifié: OUI
+- Prestation: ${state.prestation ? state.prestation.nom : 'N/A'}
+- Site: ${state.siteName || 'N/A'}
+
+Réponds UNIQUEMENT en JSON: {"success":true,"pageUrl":"url"} ou {"success":false,"error":"msg"}`;
+
+  try {
+    const data = await callClaude(prompt, 800);
+    const tb = data.content.find(b=>b.type==='text');
+    let result = {};
+    try { result = JSON.parse(tb.text.replace(/```json|```/g,'').trim()); } catch(e) { result = {success:true}; }
+    hideOverlay();
+    showSuccess(typeLabel, heure, geoStr, result.pageUrl);
+  } catch(e) {
+    hideOverlay();
+    alert('Erreur de connexion. Vérifiez votre connexion et réessayez.');
+  }
+}
+
+function showSuccess(typeLabel, heure, geoStr, pageUrl) {
+  const badge = state.type === 'debut'
+    ? '<span class="badge green">DÉBUT DE SERVICE</span>'
+    : '<span class="badge red">FIN DE SERVICE</span>';
+  document.getElementById('success-detail').innerHTML = `
+    <div class="detail-row"><span class="detail-key">Agent</span><span class="detail-val">${state.selectedAgent.nom}</span></div>
+    <div class="detail-row"><span class="detail-key">Type</span>${badge}</div>
+    <div class="detail-row"><span class="detail-key">Heure</span><span class="detail-val">${heure}</span></div>
+    ${state.prestation ? `<div class="detail-row"><span class="detail-key">Prestation</span><span class="detail-val">${state.prestation.nom}</span></div>` : ''}
+    <div class="detail-row"><span class="detail-key">GPS</span><span class="detail-val" style="font-size:11px;font-family:'DM Mono',monospace">${geoStr}</span></div>
+    <div class="detail-row"><span class="detail-key">PIN</span><span class="detail-val" style="color:#5DCAA5">✓ Vérifié</span></div>
+    ${pageUrl ? `<div class="detail-row"><span class="detail-key">Notion</span><a href="${pageUrl}" style="color:var(--gold);font-size:11px;font-family:'DM Mono',monospace">Voir l'entrée →</a></div>` : ''}
+  `;
+  show('screen-success');
+}
+
+function reset() {
+  state.selectedAgent = null;
+  state.prestation = null;
+  state.pinVerified = false;
+  state.pinAttempts = 0;
+  state.sigDrawn = false;
+  clearSig();
+  document.getElementById('search-input').value = '';
+  document.getElementById('pin-field').style.display = 'none';
+  document.getElementById('sig-field').style.display = 'none';
+  document.getElementById('presta-field').style.display = 'none';
+  document.getElementById('btn-submit').style.display = 'none';
+  document.getElementById('not-assigned').className = 'not-assigned';
+  document.getElementById('pin-input').value = '';
+  document.getElementById('pin-input').className = '';
+  document.getElementById('pin-alert').className = 'alert danger';
+  document.getElementById('pin-ok').className = 'alert success';
+  document.getElementById('sig-alert').className = 'alert danger';
+  selectType('debut');
+  renderAgents(state.agents);
+  show('screen-form');
+}
+
+// ─── UTILS ────────────────────────────────────────────────────────────────────
+function show(id) {
+  ['screen-form','screen-success','screen-blocked'].forEach(s => {
+    document.getElementById(s).classList.toggle('active', s === id);
+  });
+}
+function showOverlay(msg) { document.getElementById('overlay-msg').textContent = msg; document.getElementById('overlay').className = 'overlay show'; }
+function hideOverlay() { document.getElementById('overlay').className = 'overlay'; }
+
+async function callClaude(prompt, maxTokens) {
+  const resp = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: MODEL,
+      max_tokens: maxTokens,
+      system: "Tu es un assistant qui interroge et écrit dans Notion via MCP. Réponds UNIQUEMENT en JSON strict, sans markdown ni explication.",
+      messages: [{ role: "user", content: prompt }],
+      mcp_servers: [{ type: "url", url: NOTION_MCP, name: "notion" }]
+    })
+  });
+  if (!resp.ok) throw new Error('API error');
+  return resp.json();
+}
+</script>
+</body>
+</html>

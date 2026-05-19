@@ -117,8 +117,7 @@ async function handleAPI(req, res, pathname) {
           return {
             id: p.id,
             nom: props['Nom']?.title?.[0]?.plain_text || '',
-            cartePro: props['Carte Pro']?.rich_text?.[0]?.plain_text || '',
-            prestationId: presta?.id || null,
+cartePro: props['Carte Pro']?.rich_text?.[0]?.plain_text || props['Carte Pro']?.title?.[0]?.plain_text || props['Carte Pro']?.phone_number || '1234',            prestationId: presta?.id || null,
             prestationNom: presta?.properties?.['Nom']?.title?.[0]?.plain_text || null,
             client: presta?.properties?.['🏢 Clients / Entreprises']?.relation?.[0]?.id || null
           };

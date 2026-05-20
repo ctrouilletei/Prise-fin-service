@@ -254,8 +254,10 @@ function setGeoErr(msg){
 
 function selectType(t){S.type=t;document.getElementById('card-debut').classList.toggle('selected',t==='debut');document.getElementById('card-fin').classList.toggle('selected',t==='fin');}
 
-async function loadAgents() {
-  var allAgents = [];
+async function function loadAgents() {
+  S.agents = [];
+  document.getElementById('list-placeholder').textContent = '⏳ Chargement...';
+  
   function fetchPage(cursor) {
     var body = {page_size: 100};
     if (cursor) body.start_cursor = cursor;
@@ -267,13 +269,13 @@ async function loadAgents() {
           var cartePro = props['Carte Pro'] && props['Carte Pro'].rich_text && props['Carte Pro'].rich_text[0] ? props['Carte Pro'].rich_text[0].plain_text : '';
           return {id: p.id, nom: nom, cartePro: cartePro};
         }).filter(function(a) { return a.nom; });
-        allAgents = allAgents.concat(page);
+        
+        S.agents = S.agents.concat(page);
+        S.agents.sort(function(a,b) { return a.nom.localeCompare(b.nom); });
+        renderAgents(S.agents);
+
         if (result.has_more && result.next_cursor) {
           fetchPage(result.next_cursor);
-        } else {
-          allAgents.sort(function(a,b) { return a.nom.localeCompare(b.nom); });
-          S.agents = allAgents;
-          renderAgents(S.agents);
         }
       })
       .catch(function() {

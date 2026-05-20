@@ -6,18 +6,20 @@ const url = require('url');
 
 const PORT = process.env.PORT || 3000;
 const NOTION_TOKEN = process.env.NOTION_TOKEN;
+const NOTION_TOKEN_WRITE = process.env.ANTHROPIC_API_KEY_POINTAGE || process.env.NOTION_TOKEN;
 const AGENTS_DB    = '214a12376ab3802d86a0c166920a50c3';
 const PRESTAS_DB   = '328a12376ab380f2926dd048912c453b';
 const POINTAGES_DB = 'b0b4acfd6dac4d06a41d66c658675d8c';
 
-function notionRequest(method, endpoint, body) {
+function notionRequest(method, endpoint, body, token) {
   return new Promise(function(resolve, reject) {
+    var useToken = token || NOTION_TOKEN;
     var data = body ? Buffer.from(JSON.stringify(body)) : null;
     var options = {
       hostname: 'api.notion.com', port: 443,
       path: '/v1/' + endpoint, method: method,
       headers: {
-        'Authorization': 'Bearer ' + NOTION_TOKEN,
+        'Authorization': 'Bearer ' + useToken,
         'Notion-Version': '2022-06-28',
         'Content-Type': 'application/json'
       }
@@ -185,7 +187,7 @@ var server = http.createServer(function(req, res) {
       };
       if (d.prestationId) page.properties['Prestation'] = {relation: [{id: d.prestationId}]};
       if (d.siteId) page.properties['Site'] = {relation: [{id: d.siteId}]};
-      notionRequest('POST', 'pages', page).then(function(result) {
+      notionRequest('POST', 'pages', page, NOTION_TOKEN_WRITE).then(function(result) {
         res.writeHead(200, {'Content-Type': 'application/json'});
 console.log('Notion response:', JSON.stringify(result).slice(0, 500));
 res.end(JSON.stringify({success: true, pageUrl: result.url}));      }).catch(function(e) {

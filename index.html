@@ -254,16 +254,33 @@ function setGeoErr(msg){
 
 function selectType(t){S.type=t;document.getElementById('card-debut').classList.toggle('selected',t==='debut');document.getElementById('card-fin').classList.toggle('selected',t==='fin');}
 
-async function loadAgents(){
-  try{
-    const url = S.siteId ? `/api/agents?site=${S.siteId}` : '/api/agents';
-    const r = await fetch(url);
-    const d = await r.json();
-    S.agents = d.agents || [];
-    renderAgents(S.agents);
-  }catch(e){
-    document.getElementById('list-placeholder').innerHTML='⚠ Erreur — <button onclick="loadAgents()" style="background:none;border:none;color:#C9A84C;cursor:pointer;font-family:DM Mono,monospace">réessayer</button>';
+async function loadAgents() {
+  var allAgents = [];
+  function fetchPage(cursor) {
+    var body = {page_size: 100};
+    if (cursor) body.start_cursor = cursor;
+    notionFetch('POST', 'databases/' + AGENTS_DB + '/query', body)
+      .then(function(result) {
+        var page = (result.results || []).map(function(p) {
+          var props = p.properties;
+          var nom = props['Nom'] && props['Nom'].title && props['Nom'].title[0] ? props['Nom'].title[0].plain_text : '';
+          var cartePro = props['Carte Pro'] && props['Carte Pro'].rich_text && props['Carte Pro'].rich_text[0] ? props['Carte Pro'].rich_text[0].plain_text : '';
+          return {id: p.id, nom: nom, cartePro: cartePro};
+        }).filter(function(a) { return a.nom; });
+        allAgents = allAgents.concat(page);
+        if (result.has_more && result.next_cursor) {
+          fetchPage(result.next_cursor);
+        } else {
+          allAgents.sort(function(a,b) { return a.nom.localeCompare(b.nom); });
+          S.agents = allAgents;
+          renderAgents(S.agents);
+        }
+      })
+      .catch(function() {
+        document.getElementById('list-placeholder').textContent = '⚠ Erreur de chargement';
+      });
   }
+  fetchPage(null);
 }
 
 function renderAgents(agents){

@@ -187,8 +187,8 @@ var server = http.createServer(function(req, res) {
       if (d.siteId) page.properties['Site'] = {relation: [{id: d.siteId}]};
       notionRequest('POST', 'pages', page).then(function(result) {
         res.writeHead(200, {'Content-Type': 'application/json'});
-        res.end(JSON.stringify({success: true, pageUrl: result.url}));
-      }).catch(function(e) {
+console.log('Notion response:', JSON.stringify(result).slice(0, 500));
+res.end(JSON.stringify({success: true, pageUrl: result.url}));      }).catch(function(e) {
         console.error('Erreur création page:', e.message);
         res.writeHead(500, {'Content-Type': 'application/json'});
         res.end(JSON.stringify({success: false, error: e.message}));

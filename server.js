@@ -78,7 +78,7 @@ async function handleAPI(req, res, pathname) {
           ]
         });
         // Filtre côté JS pour les prestations dont la période inclut aujourd'hui
-        prestationsActives = allPrestas.filter(p => {
+        prestationsActives = allPrestas..filter(a => a.nom);
           const start = p.properties['Période de prestation']?.date?.start?.split('T')[0];
           const end = p.properties['Période de prestation']?.date?.end?.split('T')[0] || start;
           return start && start <= today && today <= end;

@@ -185,8 +185,7 @@ var server = http.createServer(function(req, res) {
           'Statut vacation':{select: {name: d.type === 'Début de service' ? 'En poste' : 'Terminé'}}
         }
       };
-      if (d.prestationId) page.properties['Prestation'] = {relation: [{id: d.prestationId}]};
-      if (d.siteId) page.properties['Site'] = {relation: [{id: d.siteId}]};
+    if (d.siteId) page.properties['Site'] = {relation: [{id: d.siteId}]};
       notionRequest('POST', 'pages', page, NOTION_TOKEN_WRITE).then(function(result) {
         res.writeHead(200, {'Content-Type': 'application/json'});
 console.log('Notion response:', JSON.stringify(result).slice(0, 500));

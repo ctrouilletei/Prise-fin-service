@@ -298,28 +298,71 @@ function renderAgents(agents){
 
 function filterAgents(q){renderAgents(S.agents.filter(a=>a.nom.toLowerCase().includes(q.toLowerCase())));}
 
-function selectAgent(agent){
-  S.selectedAgent=agent; S.pinVerified=false; S.pinAttempts=0;
-  document.getElementById('pin-input').value=''; document.getElementById('pin-input').className='';
-  document.getElementById('pin-alert').className='alert danger'; document.getElementById('pin-ok').className='alert success';
+function selectAgent(agent) {
+  S.selectedAgent = agent;
+  S.pinVerified = false; S.pinAttempts = 0;
+  document.getElementById('pin-input').value = '';
+  document.getElementById('pin-input').className = '';
+  document.getElementById('pin-alert').className = 'alert danger';
+  document.getElementById('pin-ok').className = 'alert success';
+  document.getElementById('pin-field').style.display = 'none';
+  document.getElementById('sig-field').style.display = 'none';
+  document.getElementById('btn-submit').style.display = 'none';
   filterAgents(document.getElementById('search-input').value);
-  if(agent.prestationId){
-    S.prestation={id:agent.prestationId,nom:agent.prestationNom};
-    document.getElementById('presta-field').style.display='flex';
-    document.getElementById('presta-name').textContent=agent.prestationNom||'Prestation du jour';
-    document.getElementById('presta-sub').textContent=agent.client||'';
-    document.getElementById('not-assigned').className='not-assigned';
-    showPin();
-  }else if(S.siteId){
-    document.getElementById('presta-field').style.display='none';
-    document.getElementById('not-assigned').className='not-assigned show';
-    document.getElementById('pin-field').style.display='none';
-    document.getElementById('sig-field').style.display='none';
-    document.getElementById('btn-submit').style.display='none';
-  }else{
-    document.getElementById('presta-field').style.display='none';
-    showPin();
-  }
+  showOverlay('Vérification en cours...');
+
+  var today = new Date().toISOString().split('T')[0];
+  var typeLabel = S.type === 'debut' ? 'Début de service' : 'Fin de service';
+  var typeOpp = S.type === 'debut' ? 'Début de service' : 'Fin de service';
+
+  notionFetch('POST', 'databases/' + POINTAGES_DB + '/query', {
+    filter: {
+      and: [
+        {property: 'Agent', relation: {contains: agent.id}},
+        {property: 'Horodatage', date: {on_or_after: today + 'T00:00:00.000Z'}},
+        {property: 'Type', select: {equals: typeLabel}}
+      ]
+    },
+    page_size: 1
+  }).then(function(result) {
+    hideOverlay();
+    if (result.results && result.results.length > 0) {
+      var heure = new Date(result.results[0].properties['Horodatage'].date.start)
+        .toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'});
+      document.getElementById('pin-alert').textContent = S.type === 'debut'
+        ? 'Vous avez déjà pointé votre début de service aujourd\'hui à ' + heure
+        : 'Vous avez déjà pointé votre fin de service aujourd\'hui à ' + heure;
+      document.getElementById('pin-alert').className = 'alert danger show';
+      document.getElementById('pin-field').style.display = 'flex';
+    } else if (S.type === 'fin') {
+      notionFetch('POST', 'databases/' + POINTAGES_DB + '/query', {
+        filter: {
+          and: [
+            {property: 'Agent', relation: {contains: agent.id}},
+            {property: 'Horodatage', date: {on_or_after: today + 'T00:00:00.000Z'}},
+            {property: 'Type', select: {equals: 'Début de service'}}
+          ]
+        },
+        page_size: 1
+      }).then(function(r2) {
+        if (!r2.results || r2.results.length === 0) {
+          document.getElementById('pin-alert').textContent = 'Vous n\'avez pas encore pointé votre début de service aujourd\'hui.';
+          document.getElementById('pin-alert').className = 'alert danger show';
+          document.getElementById('pin-field').style.display = 'flex';
+        } else {
+          document.getElementById('pin-field').style.display = 'flex';
+          setTimeout(function() { document.getElementById('pin-input').focus(); }, 100);
+        }
+      });
+    } else {
+      document.getElementById('pin-field').style.display = 'flex';
+      setTimeout(function() { document.getElementById('pin-input').focus(); }, 100);
+    }
+  }).catch(function() {
+    hideOverlay();
+    document.getElementById('pin-field').style.display = 'flex';
+    setTimeout(function() { document.getElementById('pin-input').focus(); }, 100);
+  });
 }
 
 function showPin(){

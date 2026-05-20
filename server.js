@@ -67,23 +67,21 @@ async function handleAPI(req, res, pathname) {
     const siteId = params.get('site');
     const today = new Date().toISOString().split('T')[0];
 
-    try {
-      // 1. Récupère les prestations actives aujourd'hui sur ce site
-      let prestationsActives = [];
-      if (siteId) {
-        const allPrestas = await queryAll(DB.prestas, {
-          and: [
-            { property: '🏟️ Sites des missions', relation: { contains: siteId } },
-            { property: 'Période de prestation', date: { on_or_before: new Date().toISOString() } }
-          ]
-        });
-        // Filtre côté JS pour les prestations dont la période inclut aujourd'hui
-        prestationsActives = allPrestas..filter(a => a.nom);
-          const start = p.properties['Période de prestation']?.date?.start?.split('T')[0];
-          const end = p.properties['Période de prestation']?.date?.end?.split('T')[0] || start;
-          return start && start <= today && today <= end;
-        });
-      }
+   try {
+  const result = await notionRequest('POST', `databases/${DB.agents}/query`, { page_size: 10 });
+  console.log('Notion raw:', JSON.stringify(result).slice(0, 300));
+  const agents = (result.results || []).map(p => ({
+    id: p.id,
+    nom: p.properties['Nom']?.title?.[0]?.plain_text || '',
+    cartePro: '0000'
+  })).filter(a => a.nom);
+  res.writeHead(200, {'Content-Type': 'application/json'});
+  res.end(JSON.stringify({ agents }));
+} catch(e) {
+  console.error('Erreur:', e.message);
+  res.writeHead(500, {'Content-Type': 'application/json'});
+  res.end(JSON.stringify({ error: e.message, agents: [] }));
+}
 
       // 2. Récupère les agents
       let agentPages = [];

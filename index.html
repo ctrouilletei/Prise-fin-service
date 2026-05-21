@@ -337,7 +337,6 @@ function submitForm(){
       '<div class="detail-row"><span class="detail-key">Heure</span><span class="detail-val">'+heure+'</span></div>'+
       (S.prestation?'<div class="detail-row"><span class="detail-key">Prestation</span><span class="detail-val">'+S.prestation.nom+'</span></div>':'')+
       '<div class="detail-row"><span class="detail-key">GPS</span><span class="detail-val" style="font-size:11px;font-family:DM Mono,monospace">'+geoStr+'</span></div>'+
-      (result.pageUrl?'<div class="detail-row"><span class="detail-key">Notion</span><a href="'+result.pageUrl+'" style="color:var(--gold);font-size:11px;font-family:DM Mono,monospace">Voir →</a></div>':'');
     showScreen('screen-success');
   }).catch(function(){hideOverlay();alert('Erreur de connexion. Réessayez.');});
 }

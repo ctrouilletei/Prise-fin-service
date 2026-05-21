@@ -6,7 +6,7 @@ const url = require('url');
 
 const PORT = process.env.PORT || 3000;
 const NOTION_TOKEN = process.env.NOTION_TOKEN;
-const NOTION_TOKEN_WRITE = process.env.ANTHROPIC_API_KEY_POINTAGE || process.env.NOTION_TOKEN;
+const NOTION_TOKEN_WRITE = process.env.NOTION_TOKEN;
 const AGENTS_DB    = '214a12376ab3802d86a0c166920a50c3';
 const PRESTAS_DB   = '328a12376ab380f2926dd048912c453b';
 const POINTAGES_DB = 'b0b4acfd6dac4d06a41d66c658675d8c';

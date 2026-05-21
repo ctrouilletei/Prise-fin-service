@@ -212,7 +212,7 @@ function initGeo(){
 }
 function updateGeoDisplay(){
   if(!S.geo)return;
-  if(S.siteGps&&S.geo){var dist=Math.round(distanceMetres(S.geo.lat,S.geo.lng,S.siteGps.lat,S.siteGps.lng)),rayon=S.siteGps.rayon||500;setGeoState(dist<=rayon?'ok':'warn',dist<=rayon?'Sur site — précision ±'+S.geo.acc+'m':'Éloigné du site ('+dist+'m) — vérifiez votre position');}
+  if(S.siteGps&&S.geo){var dist=Math.round(distanceMetres(S.geo.lat,S.geo.lng,S.siteGps.lat,S.siteGps.lng)),rayon=S.siteGps.rayon||500;var distLabel=dist>=1000?(dist/1000).toFixed(1)+'km':dist+'m';setGeoState(dist<=rayon?'ok':'warn',dist<=rayon?'Sur site — précision ±'+S.geo.acc+'m':'Éloigné du site ('+distLabel+') — vérifiez votre position');}
   else{setGeoState('ok','Position capturée — précision ±'+S.geo.acc+'m');}
 }
 function setGeoState(state,msg){
@@ -297,7 +297,7 @@ function submitForm(){
   var typeLabel=S.type==='debut'?'Début de service':'Fin de service';
   var geoStr=S.geo?S.geo.lat.toFixed(5)+', '+S.geo.lng.toFixed(5)+' (±'+S.geo.acc+'m)':'Non disponible';
   var geoStatut='';
-  if(S.geo&&S.siteGps){var dist=Math.round(distanceMetres(S.geo.lat,S.geo.lng,S.siteGps.lat,S.siteGps.lng));geoStatut=' — '+dist+'m du site';}
+  if(S.geo&&S.siteGps){var dist=Math.round(distanceMetres(S.geo.lat,S.geo.lng,S.siteGps.lat,S.siteGps.lng));var distLabel=dist>=1000?(dist/1000).toFixed(1)+'km':dist+'m';geoStatut=' — '+distLabel+' du site';}
   var signatureBase64=canvas.toDataURL('image/png');
   document.getElementById('overlay-msg').textContent='Enregistrement dans Notion...';
   api('POST','/api/pointage',{

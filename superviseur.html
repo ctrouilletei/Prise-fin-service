@@ -503,14 +503,51 @@ function renderUpcoming(days) {
     html+='<div class="upcoming-grid">';
     day.prestas.forEach(function(pr){
       html+='<div class="upcoming-card">';
-      html+='<div class="upcoming-nom">'+escHtml(pr.nom)+'</div>';
+      html+='<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">';
+      html+='<div><div class="upcoming-nom">'+escHtml(pr.nom)+'</div>';
       html+='<div class="upcoming-site">📍 '+escHtml(pr.site)+'</div>';
-      html+='<div class="upcoming-count">👥 '+pr.agentCount+' agents affectés</div>';
+      html+='<div class="upcoming-count">👥 '+pr.agentCount+' agents affectés</div></div>';
+      html+='<span class="badge upcoming">J+'+(day.jours||'?')+'</span>';
+      html+='</div>';
+      // Agents affectés
+      if(pr.agents&&pr.agents.length){
+        html+='<div class="chips" style="margin-top:8px;">';
+        pr.agents.forEach(function(a){html+='<div class="chip">'+escHtml(a.nom)+'</div>';});
+        html+='</div>';
+      }
+      // Boutons
+      html+='<div class="card-foot" style="padding:10px 0 0;border-top:1px solid var(--dark3);margin-top:10px;">';
+      if(pr.siteId){
+        html+='<button class="btn-qr" onclick=\'showQR('+JSON.stringify(pr).replace(/'/g,"&#39;")+')\'>⬛ QR Code</button>';
+      }
+      html+='<button class="btn-detail" onclick=\'showUpcomingDetail('+JSON.stringify(pr).replace(/'/g,"&#39;")+')\'>Détail →</button>';
+      html+='</div>';
       html+='</div>';
     });
     html+='</div></div>';
   });
   document.getElementById('upcoming-container').innerHTML=html||'<div class="empty">Aucune mission à venir</div>';
+}
+
+function showUpcomingDetail(pr) {
+  document.getElementById('panel-title').textContent=pr.site;
+  document.getElementById('panel-sub').textContent=pr.nom;
+  var html='';
+  if(pr.agents&&pr.agents.length){
+    html+='<div class="section-label">Agents affectés ('+pr.agents.length+')</div>';
+    pr.agents.forEach(function(a){
+      html+='<div class="p-item"><div class="p-agent">'+escHtml(a.nom)+'</div></div>';
+    });
+  } else {
+    html='<div class="empty">Aucun agent affecté</div>';
+  }
+  if(pr.siteId){
+    var qrUrl=APP_URL+'?site='+pr.siteId+'&nom='+encodeURIComponent(pr.site);
+    html+='<div class="section-label" style="margin-top:16px;">QR Code</div>';
+    html+='<button class="btn-qr" style="width:100%;" onclick=\'showQR('+JSON.stringify(pr).replace(/'/g,"&#39;")+')\'>⬛ Générer le QR Code</button>';
+  }
+  document.getElementById('panel-body').innerHTML=html;
+  document.getElementById('panel').classList.add('open');
 }
 
 // ── TABS ───────────────────────────────────────────────────────────────────
@@ -519,7 +556,9 @@ function switchTab(id,btn) {
   document.querySelectorAll('.tab-content').forEach(function(t){t.classList.remove('active');});
   btn.classList.add('active');
   document.getElementById('tab-'+id).classList.add('active');
-  if(id==='history'&&!histData.length)loadHistory();
+  // Toujours recharger depuis Notion
+  if(id==='history')loadHistory();
+  if(id==='upcoming')loadUpcoming();
 }
 
 // ── QR CODE ────────────────────────────────────────────────────────────────

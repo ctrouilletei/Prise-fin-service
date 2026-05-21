@@ -6,20 +6,19 @@ const url = require('url');
 
 const PORT = process.env.PORT || 3000;
 const NOTION_TOKEN = process.env.NOTION_TOKEN;
-const NOTION_TOKEN_WRITE = process.env.NOTION_TOKEN;
 const AGENTS_DB    = '214a12376ab3802d86a0c166920a50c3';
 const PRESTAS_DB   = '328a12376ab380f2926dd048912c453b';
 const POINTAGES_DB = 'b0b4acfd6dac4d06a41d66c658675d8c';
+const SITES_DB     = '26aa12376ab3803296ece3863941f299';
 
-function notionRequest(method, endpoint, body, token) {
+function notionRequest(method, endpoint, body) {
   return new Promise(function(resolve, reject) {
-    var useToken = token || NOTION_TOKEN;
     var data = body ? Buffer.from(JSON.stringify(body)) : null;
     var options = {
       hostname: 'api.notion.com', port: 443,
       path: '/v1/' + endpoint, method: method,
       headers: {
-        'Authorization': 'Bearer ' + useToken,
+        'Authorization': 'Bearer ' + NOTION_TOKEN,
         'Notion-Version': '2022-06-28',
         'Content-Type': 'application/json'
       }
@@ -52,36 +51,51 @@ var server = http.createServer(function(req, res) {
     var today = new Date().toISOString().split('T')[0];
 
     if (siteId) {
-      notionRequest('POST', 'databases/' + PRESTAS_DB + '/query', {
-        filter: {and: [
-          {property: '🏟️ Sites des missions', relation: {contains: siteId}},
-          {property: 'Période de prestation', date: {on_or_before: new Date().toISOString()}},
-          {property: 'Période de prestation', date: {on_or_after: today + 'T00:00:00.000Z'}}
-        ]}, page_size: 20
-      }).then(function(result) {
-        var prestas = (result.results || []).filter(function(p) {
+      // Charge les infos du site (GPS + rayon) en parallèle avec les prestations
+      Promise.all([
+        notionRequest('GET', 'pages/' + siteId, null),
+        notionRequest('POST', 'databases/' + PRESTAS_DB + '/query', {
+          filter: {and: [
+            {property: '🏟️ Sites des missions', relation: {contains: siteId}},
+            {property: 'Période de prestation', date: {on_or_before: new Date().toISOString()}},
+            {property: 'Période de prestation', date: {on_or_after: today + 'T00:00:00.000Z'}}
+          ]}, page_size: 20
+        })
+      ]).then(function(results) {
+        var sitePage = results[0];
+        var siteProps = sitePage.properties || {};
+        var siteLat = siteProps['GPS Latitude'] && siteProps['GPS Latitude'].number;
+        var siteLng = siteProps['GPS Longitude'] && siteProps['GPS Longitude'].number;
+        var siteRayon = siteProps['Rayon autorisé (m)'] && siteProps['Rayon autorisé (m)'].number || 500;
+
+        var prestas = (results[1].results || []).filter(function(p) {
           var d = p.properties['Période de prestation'] && p.properties['Période de prestation'].date;
           if (!d || !d.start) return false;
           var s = d.start.split('T')[0], e = d.end ? d.end.split('T')[0] : s;
           return s <= today && today <= e;
         });
+
         if (!prestas.length) {
           res.writeHead(200, {'Content-Type': 'application/json'});
-          res.end(JSON.stringify({agents: [], message: 'Aucune prestation active'}));
+          res.end(JSON.stringify({agents: [], siteGps: null, message: 'Aucune prestation active'}));
           return;
         }
+
         var agentMap = {};
         prestas.forEach(function(pr) {
           var rel = pr.properties['Agents'] && pr.properties['Agents'].relation ? pr.properties['Agents'].relation : [];
           var nom = pr.properties['Nom'] && pr.properties['Nom'].title && pr.properties['Nom'].title[0] ? pr.properties['Nom'].title[0].plain_text : '';
           rel.forEach(function(a) { agentMap[a.id] = {prestationId: pr.id, prestationNom: nom}; });
         });
+
         var ids = Object.keys(agentMap);
         if (!ids.length) {
           res.writeHead(200, {'Content-Type': 'application/json'});
-          res.end(JSON.stringify({agents: [], message: 'Aucun agent affecté'}));
+          res.end(JSON.stringify({agents: [], siteGps: null, message: 'Aucun agent affecté'}));
           return;
         }
+
+        var siteGps = (siteLat && siteLng) ? {lat: siteLat, lng: siteLng, rayon: siteRayon} : null;
         var batches = [], i;
         for (i = 0; i < ids.length; i += 10) batches.push(ids.slice(i, i + 10));
         var all = [], done = 0;
@@ -99,13 +113,13 @@ var server = http.createServer(function(req, res) {
               if (done === batches.length) {
                 all.sort(function(a, b) { return a.nom.localeCompare(b.nom); });
                 res.writeHead(200, {'Content-Type': 'application/json'});
-                res.end(JSON.stringify({agents: all}));
+                res.end(JSON.stringify({agents: all, siteGps: siteGps}));
               }
             }).catch(function() {
               done++;
               if (done === batches.length) {
                 res.writeHead(200, {'Content-Type': 'application/json'});
-                res.end(JSON.stringify({agents: all}));
+                res.end(JSON.stringify({agents: all, siteGps: siteGps}));
               }
             });
         });
@@ -114,8 +128,7 @@ var server = http.createServer(function(req, res) {
         res.end(JSON.stringify({error: e.message, agents: []}));
       });
     } else {
-      // Tous les agents sans filtre
-      var all = [], cursor = null;
+      var all = [];
       function fetchPage(cur) {
         var body = {page_size: 100};
         if (cur) body.start_cursor = cur;
@@ -129,7 +142,7 @@ var server = http.createServer(function(req, res) {
           } else {
             all.sort(function(a, b) { return a.nom.localeCompare(b.nom); });
             res.writeHead(200, {'Content-Type': 'application/json'});
-            res.end(JSON.stringify({agents: all}));
+            res.end(JSON.stringify({agents: all, siteGps: null}));
           }
         }).catch(function(e) {
           res.writeHead(500, {'Content-Type': 'application/json'});
@@ -177,20 +190,20 @@ var server = http.createServer(function(req, res) {
       var page = {
         parent: {database_id: POINTAGES_DB},
         properties: {
-          'Nom':            {title: [{text: {content: d.nom}}]},
-          'Type':           {select: {name: d.type}},
-          'Horodatage':     {date: {start: now.toISOString()}},
-          'Agent':          {relation: [{id: d.agentId}]},
-          'GPS':            {rich_text: [{text: {content: d.gps || 'Non disponible'}}]},
-          'Statut vacation':{select: {name: d.type === 'Début de service' ? 'En poste' : 'Terminé'}}
+          'Nom':             {title: [{text: {content: d.nom}}]},
+          'Type':            {select: {name: d.type}},
+          'Horodatage':      {date: {start: now.toISOString()}},
+          'Agent':           {relation: [{id: d.agentId}]},
+          'GPS':             {rich_text: [{text: {content: d.gps || 'Non disponible'}}]},
+          'Statut vacation': {select: {name: d.type === 'Début de service' ? 'En poste' : 'Terminé'}}
         }
       };
-    if (d.siteId) page.properties['Site'] = {relation: [{id: d.siteId}]};
-      notionRequest('POST', 'pages', page, NOTION_TOKEN_WRITE).then(function(result) {
+      if (d.siteId) page.properties['Site'] = {relation: [{id: d.siteId}]};
+      notionRequest('POST', 'pages', page).then(function(result) {
         res.writeHead(200, {'Content-Type': 'application/json'});
-console.log('Notion response:', JSON.stringify(result).slice(0, 500));
-res.end(JSON.stringify({success: true, pageUrl: result.url}));      }).catch(function(e) {
-        console.error('Erreur création page:', e.message);
+        res.end(JSON.stringify({success: true}));
+      }).catch(function(e) {
+        console.error('Erreur creation page:', e.message);
         res.writeHead(500, {'Content-Type': 'application/json'});
         res.end(JSON.stringify({success: false, error: e.message}));
       });

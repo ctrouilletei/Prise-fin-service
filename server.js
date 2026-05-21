@@ -269,7 +269,7 @@ var server = http.createServer(function(req, res) {
           }
         };
 
-        if (d.prestationId) page.properties['Prestation'] = {relation: [{id: formatId(d.prestationId)}]};
+        if (d.prestationId) {   console.log('prestationId recu:', d.prestationId, '-> formatte:', formatId(d.prestationId));   page.properties['Prestation'] = {relation: [{id: formatId(d.prestationId)}]}; } console.log('page properties:', JSON.stringify(page.properties).slice(0, 300));
         if (d.siteId) page.properties['Site'] = {relation: [{id: formatId(d.siteId)}]};
         if (signatureUrl) page.properties['Signature'] = {files: [{name: 'signature.png', type: 'external', external: {url: signatureUrl}}]};
 

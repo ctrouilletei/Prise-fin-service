@@ -6,10 +6,13 @@ const url = require('url');
 
 const PORT = process.env.PORT || 3000;
 const NOTION_TOKEN = process.env.NOTION_TOKEN;
+const CLOUDINARY_CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME;
+const CLOUDINARY_API_KEY = process.env.CLOUDINARY_API_KEY;
+const CLOUDINARY_API_SECRET = process.env.CLOUDINARY_API_SECRET;
+
 const AGENTS_DB    = '214a12376ab3802d86a0c166920a50c3';
 const PRESTAS_DB   = '328a12376ab380f2926dd048912c453b';
 const POINTAGES_DB = 'b0b4acfd6dac4d06a41d66c658675d8c';
-const SITES_DB     = '26aa12376ab3803296ece3863941f299';
 
 function notionRequest(method, endpoint, body) {
   return new Promise(function(resolve, reject) {
@@ -35,6 +38,60 @@ function notionRequest(method, endpoint, body) {
   });
 }
 
+// Upload signature base64 vers Cloudinary
+function uploadToCloudinary(base64Data) {
+  return new Promise(function(resolve, reject) {
+    var crypto = require('crypto');
+    var timestamp = Math.round(Date.now() / 1000);
+    var folder = 'jet-guards-signatures';
+    var str = 'folder=' + folder + '&timestamp=' + timestamp + CLOUDINARY_API_SECRET;
+    var signature = crypto.createHash('sha1').update(str).digest('hex');
+    var boundary = '----FormBoundary' + Math.random().toString(36).slice(2);
+    var imageData = base64Data.replace(/^data:image\/\w+;base64,/, '');
+    var body = '';
+    body += '--' + boundary + '\r\n';
+    body += 'Content-Disposition: form-data; name="file"\r\n\r\n';
+    body += 'data:image/png;base64,' + imageData + '\r\n';
+    body += '--' + boundary + '\r\n';
+    body += 'Content-Disposition: form-data; name="api_key"\r\n\r\n';
+    body += CLOUDINARY_API_KEY + '\r\n';
+    body += '--' + boundary + '\r\n';
+    body += 'Content-Disposition: form-data; name="timestamp"\r\n\r\n';
+    body += timestamp + '\r\n';
+    body += '--' + boundary + '\r\n';
+    body += 'Content-Disposition: form-data; name="signature"\r\n\r\n';
+    body += signature + '\r\n';
+    body += '--' + boundary + '\r\n';
+    body += 'Content-Disposition: form-data; name="folder"\r\n\r\n';
+    body += folder + '\r\n';
+    body += '--' + boundary + '--\r\n';
+    var bodyBuf = Buffer.from(body);
+    var options = {
+      hostname: 'api.cloudinary.com', port: 443,
+      path: '/v1_1/' + CLOUDINARY_CLOUD_NAME + '/image/upload',
+      method: 'POST',
+      headers: {
+        'Content-Type': 'multipart/form-data; boundary=' + boundary,
+        'Content-Length': bodyBuf.length
+      }
+    };
+    var req = https.request(options, function(res) {
+      var d = '';
+      res.on('data', function(c) { d += c; });
+      res.on('end', function() {
+        try {
+          var result = JSON.parse(d);
+          if (result.secure_url) resolve(result.secure_url);
+          else reject(new Error('Cloudinary error: ' + d));
+        } catch(e) { reject(e); }
+      });
+    });
+    req.on('error', reject);
+    req.write(bodyBuf);
+    req.end();
+  });
+}
+
 var server = http.createServer(function(req, res) {
   var parsed = url.parse(req.url);
   var pathname = parsed.pathname;
@@ -51,7 +108,6 @@ var server = http.createServer(function(req, res) {
     var today = new Date().toISOString().split('T')[0];
 
     if (siteId) {
-      // Charge les infos du site (GPS + rayon) en parallèle avec les prestations
       Promise.all([
         notionRequest('GET', 'pages/' + siteId, null),
         notionRequest('POST', 'databases/' + PRESTAS_DB + '/query', {
@@ -67,6 +123,7 @@ var server = http.createServer(function(req, res) {
         var siteLat = siteProps['GPS Latitude'] && siteProps['GPS Latitude'].number;
         var siteLng = siteProps['GPS Longitude'] && siteProps['GPS Longitude'].number;
         var siteRayon = siteProps['Rayon autorisé (m)'] && siteProps['Rayon autorisé (m)'].number || 500;
+        var siteGps = (siteLat && siteLng) ? {lat: siteLat, lng: siteLng, rayon: siteRayon} : null;
 
         var prestas = (results[1].results || []).filter(function(p) {
           var d = p.properties['Période de prestation'] && p.properties['Période de prestation'].date;
@@ -77,7 +134,7 @@ var server = http.createServer(function(req, res) {
 
         if (!prestas.length) {
           res.writeHead(200, {'Content-Type': 'application/json'});
-          res.end(JSON.stringify({agents: [], siteGps: null, message: 'Aucune prestation active'}));
+          res.end(JSON.stringify({agents: [], siteGps: siteGps, message: 'Aucune prestation active'}));
           return;
         }
 
@@ -91,11 +148,10 @@ var server = http.createServer(function(req, res) {
         var ids = Object.keys(agentMap);
         if (!ids.length) {
           res.writeHead(200, {'Content-Type': 'application/json'});
-          res.end(JSON.stringify({agents: [], siteGps: null, message: 'Aucun agent affecté'}));
+          res.end(JSON.stringify({agents: [], siteGps: siteGps, message: 'Aucun agent affecté'}));
           return;
         }
 
-        var siteGps = (siteLat && siteLng) ? {lat: siteLat, lng: siteLng, rayon: siteRayon} : null;
         var batches = [], i;
         for (i = 0; i < ids.length; i += 10) batches.push(ids.slice(i, i + 10));
         var all = [], done = 0;
@@ -186,27 +242,63 @@ var server = http.createServer(function(req, res) {
     req.on('end', function() {
       var d;
       try { d = JSON.parse(body); } catch(e) { res.writeHead(400); res.end('Bad request'); return; }
+
       var now = new Date(d.horodatage || new Date());
-      var page = {
-        parent: {database_id: POINTAGES_DB},
-        properties: {
-          'Nom':             {title: [{text: {content: d.nom}}]},
-          'Type':            {select: {name: d.type}},
-          'Horodatage':      {date: {start: now.toISOString()}},
-          'Agent':           {relation: [{id: d.agentId}]},
-          'GPS':             {rich_text: [{text: {content: d.gps || 'Non disponible'}}]},
-          'Statut vacation': {select: {name: d.type === 'Début de service' ? 'En poste' : 'Terminé'}}
+      var signatureBase64 = d.signature || null;
+
+      function createNotionPage(signatureUrl) {
+        // Format IDs correctement (avec tirets)
+        function formatId(id) {
+          if (!id) return null;
+          var clean = id.replace(/-/g, '');
+          if (clean.length === 32) {
+            return clean.slice(0,8)+'-'+clean.slice(8,12)+'-'+clean.slice(12,16)+'-'+clean.slice(16,20)+'-'+clean.slice(20);
+          }
+          return id;
         }
-      };
-      if (d.siteId) page.properties['Site'] = {relation: [{id: d.siteId}]};
-      notionRequest('POST', 'pages', page).then(function(result) {
-        res.writeHead(200, {'Content-Type': 'application/json'});
-        res.end(JSON.stringify({success: true}));
-      }).catch(function(e) {
-        console.error('Erreur creation page:', e.message);
-        res.writeHead(500, {'Content-Type': 'application/json'});
-        res.end(JSON.stringify({success: false, error: e.message}));
-      });
+
+        var page = {
+          parent: {database_id: POINTAGES_DB},
+          properties: {
+            'Nom':             {title: [{text: {content: d.nom}}]},
+            'Type':            {select: {name: d.type}},
+            'Horodatage':      {date: {start: now.toISOString()}},
+            'Agent':           {relation: [{id: formatId(d.agentId)}]},
+            'GPS':             {rich_text: [{text: {content: d.gps || 'Non disponible'}}]},
+            'Statut vacation': {select: {name: d.type === 'Début de service' ? 'En poste' : 'Terminé'}}
+          }
+        };
+
+        if (d.prestationId) page.properties['Prestation'] = {relation: [{id: formatId(d.prestationId)}]};
+        if (d.siteId) page.properties['Site'] = {relation: [{id: formatId(d.siteId)}]};
+        if (signatureUrl) page.properties['Signature'] = {files: [{name: 'signature.png', type: 'external', external: {url: signatureUrl}}]};
+
+        notionRequest('POST', 'pages', page).then(function(result) {
+          if (result.object === 'error') {
+            console.error('Notion error:', JSON.stringify(result));
+            res.writeHead(500, {'Content-Type': 'application/json'});
+            res.end(JSON.stringify({success: false, error: result.message}));
+          } else {
+            res.writeHead(200, {'Content-Type': 'application/json'});
+            res.end(JSON.stringify({success: true}));
+          }
+        }).catch(function(e) {
+          console.error('Erreur creation page:', e.message);
+          res.writeHead(500, {'Content-Type': 'application/json'});
+          res.end(JSON.stringify({success: false, error: e.message}));
+        });
+      }
+
+      if (signatureBase64 && CLOUDINARY_CLOUD_NAME) {
+        uploadToCloudinary(signatureBase64).then(function(url) {
+          createNotionPage(url);
+        }).catch(function(e) {
+          console.error('Cloudinary error:', e.message);
+          createNotionPage(null);
+        });
+      } else {
+        createNotionPage(null);
+      }
     });
     return;
   }

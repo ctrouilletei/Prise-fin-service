@@ -156,20 +156,27 @@ var server = http.createServer(function(req, res) {
   // ── GET /api/superviseur/upcoming ────────────────────────────────────────
   if(req.method==='GET'&&pathname==='/api/superviseur/upcoming'){
     var now=new Date(),days=[];
-    for(var i=1;i<=15;i++){var d=new Date(now.getTime()+i*24*60*60*1000);days.push({date:d.toISOString().split('T')[0],label:d.toLocaleDateString('fr-FR',{weekday:'long',day:'2-digit',month:'long'}),prestas:[]});}
+    for(var i=1;i<=15;i++){var d=new Date(now.getTime()+i*24*60*60*1000);days.push({date:d.toISOString().split('T')[0],label:d.toLocaleDateString('fr-FR',{weekday:'long',day:'2-digit',month:'long'}),jours:i,prestas:[]});}
     var startDate=days[0].date,endDate=days[days.length-1].date;
     notionRequest('POST','databases/'+PRESTAS_DB+'/query',{filter:{and:[{property:'Période de prestation',date:{on_or_after:startDate+'T00:00:00.000Z'}},{property:'Période de prestation',date:{on_or_before:endDate+'T23:59:59.000Z'}}]},page_size:100}).then(function(result){
       var siteIds=[...new Set((result.results||[]).map(function(p){var r=p.properties['🏟️ Sites des missions']&&p.properties['🏟️ Sites des missions'].relation;return r&&r[0]?r[0].id:null;}).filter(Boolean))];
-      Promise.all(siteIds.map(function(id){return notionRequest('GET','pages/'+id,null);})).then(function(sitePages){
-        var siteMap={};sitePages.forEach(function(s){if(s&&s.id)siteMap[s.id]=s.properties&&s.properties['Nom']&&s.properties['Nom'].title&&s.properties['Nom'].title[0]?s.properties['Nom'].title[0].plain_text:'';});
+      var agentIdsAll=[...new Set((result.results||[]).flatMap(function(p){var r=p.properties['Agents']&&p.properties['Agents'].relation;return r?r.map(function(a){return a.id;}):[]}))].slice(0,100);
+      Promise.all([
+        Promise.all(siteIds.map(function(id){return notionRequest('GET','pages/'+id,null);})),
+        Promise.all(agentIdsAll.map(function(id){return notionRequest('GET','pages/'+id,null);}))
+      ]).then(function(enriched){
+        var siteMap={},agentMap={};
+        enriched[0].forEach(function(s){if(s&&s.id)siteMap[s.id]=s.properties&&s.properties['Nom']&&s.properties['Nom'].title&&s.properties['Nom'].title[0]?s.properties['Nom'].title[0].plain_text:'';});
+        enriched[1].forEach(function(a){if(a&&a.id)agentMap[a.id]=a.properties&&a.properties['Nom']&&a.properties['Nom'].title&&a.properties['Nom'].title[0]?a.properties['Nom'].title[0].plain_text:'';});
         (result.results||[]).forEach(function(p){
           var nom=p.properties['Nom']&&p.properties['Nom'].title&&p.properties['Nom'].title[0]?p.properties['Nom'].title[0].plain_text:'';
           var dateP=p.properties['Période de prestation']&&p.properties['Période de prestation'].date;if(!dateP||!dateP.start)return;
           var startP=dateP.start.split('T')[0],endP=dateP.end?dateP.end.split('T')[0]:startP;
           var siteRel=p.properties['🏟️ Sites des missions']&&p.properties['🏟️ Sites des missions'].relation;
           var siteId=siteRel&&siteRel[0]?siteRel[0].id:null;
-          var agentCount=p.properties['Agents']&&p.properties['Agents'].relation?p.properties['Agents'].relation.length:0;
-          days.forEach(function(day){if(day.date>=startP&&day.date<=endP){day.prestas.push({nom:nom,site:siteMap[siteId]||'Site inconnu',agentCount:agentCount});}});
+          var agentsRel=p.properties['Agents']&&p.properties['Agents'].relation?p.properties['Agents'].relation:[];
+          var agents=agentsRel.map(function(a){return{id:a.id,nom:agentMap[a.id]||a.id};});
+          days.forEach(function(day){if(day.date>=startP&&day.date<=endP){day.prestas.push({id:p.id,nom:nom,site:siteMap[siteId]||'Site inconnu',siteId:siteId,agentCount:agents.length,agents:agents,jours:day.jours});}});
         });
         res.writeHead(200,{'Content-Type':'application/json'});res.end(JSON.stringify({days:days.filter(function(d){return d.prestas.length>0;})}));
       }).catch(function(){res.writeHead(200,{'Content-Type':'application/json'});res.end(JSON.stringify({days:[]}));});

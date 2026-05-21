@@ -7,7 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{--gold:#C9A84C;--black:#0E0E0E;--dark:#1A1A1A;--dark2:#242424;--dark3:#2E2E2E;--gray:#888;--gray-light:#555;--white:#F8F5EF;--red:#E24B4A;--green:#1D9E75;--radius:12px;--radius-sm:8px}
+:root{--gold:#C9A84C;--black:#0E0E0E;--dark:#1A1A1A;--dark2:#242424;--dark3:#2E2E2E;--gray:#888;--gray-light:#555;--white:#F8F5EF;--red:#E24B4A;--green:#1D9E75;--orange:#E8833A;--radius:12px;--radius-sm:8px}
 html,body{min-height:100vh;background:var(--black);font-family:'Syne',sans-serif;color:var(--white);overscroll-behavior:none}
 .app{max-width:420px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;padding-bottom:32px}
 .header{padding:20px 20px 16px;border-bottom:1px solid var(--dark3);display:flex;align-items:flex-start;justify-content:space-between;position:sticky;top:0;background:var(--black);z-index:100}
@@ -16,6 +16,7 @@ html,body{min-height:100vh;background:var(--black);font-family:'Syne',sans-serif
 .brand-name span{color:var(--gold)}
 .geo-pill{display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:20px;border:1px solid var(--dark3);font-family:'DM Mono',monospace;font-size:10px;color:var(--gray);transition:all .3s}
 .geo-pill.ok{border-color:var(--green);color:var(--green)}
+.geo-pill.warn{border-color:var(--orange);color:var(--orange)}
 .geo-pill.err{border-color:var(--red);color:var(--red)}
 .geo-dot{width:6px;height:6px;border-radius:50%;background:currentColor}
 .geo-dot.pulse{animation:pulse 1.5s infinite}
@@ -56,8 +57,9 @@ input::placeholder{color:var(--gray-light)}
 .agent-name{font-size:14px;font-weight:500}
 .agent-meta{font-size:11px;color:var(--gray);font-family:'DM Mono',monospace}
 .empty-list{padding:20px;text-align:center;color:var(--gray);font-size:13px;font-family:'DM Mono',monospace}
-.alert{border-radius:var(--radius-sm);padding:10px 14px;font-size:12px;font-family:'DM Mono',monospace;display:none;align-items:center;gap:8px}
+.alert{border-radius:var(--radius-sm);padding:10px 14px;font-size:12px;font-family:'DM Mono',monospace;display:none;align-items:center;gap:8px;line-height:1.4}
 .alert.danger{background:rgba(226,75,74,.1);border:1px solid rgba(226,75,74,.3);color:#F09595}
+.alert.warn{background:rgba(232,131,58,.1);border:1px solid rgba(232,131,58,.3);color:#E8833A}
 .alert.show{display:flex}
 .presta-badge{background:rgba(201,168,76,.08);border:1px solid rgba(201,168,76,.25);border-radius:var(--radius-sm);padding:10px 14px;display:flex;align-items:center;gap:10px}
 .presta-name{font-size:13px;font-weight:500;color:var(--gold)}
@@ -89,14 +91,16 @@ canvas{width:100%;height:130px;display:block;background:#fff;border-radius:4px;t
 .badge{padding:3px 8px;border-radius:20px;font-size:11px;font-family:'DM Mono',monospace}
 .badge.green{background:rgba(29,158,117,.15);color:#5DCAA5;border:1px solid rgba(29,158,117,.3)}
 .badge.red{background:rgba(226,75,74,.15);color:#F09595;border:1px solid rgba(226,75,74,.3)}
+.badge.orange{background:rgba(232,131,58,.15);color:#E8833A;border:1px solid rgba(232,131,58,.3)}
 .btn-new{width:100%;background:var(--dark);border:1px solid var(--dark3);border-radius:var(--radius);color:var(--white);font-family:'Syne',sans-serif;font-size:14px;padding:13px;cursor:pointer;transition:border-color .2s}
 .btn-new:hover{border-color:var(--gold);color:var(--gold)}
 #screen-blocked{align-items:center;justify-content:center;text-align:center;gap:16px;padding:40px 20px;min-height:80vh}
 .blocked-icon{font-size:48px}
 .blocked-title{font-size:18px;font-weight:700;color:var(--red)}
 .blocked-sub{font-size:13px;color:var(--gray);line-height:1.6;max-width:280px;font-family:'DM Mono',monospace}
-.geo-info{border-radius:var(--radius-sm);padding:10px 14px;font-size:12px;font-family:'DM Mono',monospace;display:flex;align-items:flex-start;gap:8px;background:var(--dark);border:1px solid var(--dark3);color:var(--gray);transition:all .3s}
+.geo-info{border-radius:var(--radius-sm);padding:10px 14px;font-size:12px;font-family:'DM Mono',monospace;display:flex;align-items:flex-start;gap:8px;background:var(--dark);border:1px solid var(--dark3);color:var(--gray);transition:all .3s;line-height:1.4}
 .geo-info.ok{border-color:rgba(29,158,117,.4);color:#5DCAA5;background:rgba(29,158,117,.05)}
+.geo-info.warn{border-color:rgba(232,131,58,.4);color:#E8833A;background:rgba(232,131,58,.05)}
 .geo-info.err{border-color:rgba(226,75,74,.3);color:#F09595;background:rgba(226,75,74,.05)}
 </style>
 </head>
@@ -150,7 +154,7 @@ canvas{width:100%;height:130px;display:block;background:#fff;border-radius:4px;t
         <div class="field-label">Prestation détectée</div>
         <div class="presta-badge"><div style="font-size:18px">📋</div><div><div class="presta-name" id="presta-name">—</div><div class="presta-sub" id="presta-sub">—</div></div></div>
       </div>
-      <div class="alert danger" id="check-alert" style="margin-top:-8px"></div>
+      <div class="alert danger" id="check-alert"></div>
       <div class="field" id="sig-field" style="display:none">
         <div class="field-label">Signature *</div>
         <div class="sig-wrap">
@@ -177,10 +181,19 @@ canvas{width:100%;height:130px;display:block;background:#fff;border-radius:4px;t
 </div>
 <div class="overlay" id="overlay"><div class="spinner"></div><div class="overlay-msg" id="overlay-msg">Chargement...</div></div>
 <script>
-var S = {type:'debut',siteId:null,siteName:null,agents:[],selectedAgent:null,prestation:null,sigDrawn:false,geo:null};
+var S = {type:'debut',siteId:null,siteName:null,agents:[],siteGps:null,selectedAgent:null,prestation:null,sigDrawn:false,geo:null,geoStatus:'pending'};
 
 function api(method, path, body) {
   return fetch(path,{method:method,headers:{'Content-Type':'application/json'},body:body?JSON.stringify(body):undefined}).then(function(r){return r.json();});
+}
+
+// Calcul distance haversine en mètres
+function distanceMetres(lat1, lng1, lat2, lng2) {
+  var R = 6371000;
+  var dLat = (lat2-lat1)*Math.PI/180;
+  var dLng = (lng2-lng1)*Math.PI/180;
+  var a = Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)*Math.sin(dLng/2);
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
 }
 
 window.addEventListener('DOMContentLoaded', function() {
@@ -206,33 +219,48 @@ function initClock() {
 }
 
 function initGeo() {
-  if (!navigator.geolocation){setGeoErr('GPS non disponible');return;}
+  if (!navigator.geolocation){setGeoState('err','GPS non disponible');return;}
   navigator.geolocation.getCurrentPosition(
     function(pos){
       S.geo={lat:pos.coords.latitude,lng:pos.coords.longitude,acc:Math.round(pos.coords.accuracy)};
-      document.getElementById('geo-pill').className='geo-pill ok';
-      document.getElementById('geo-dot').className='geo-dot';
-      document.getElementById('geo-pill-txt').textContent='GPS ✓';
-      document.getElementById('geo-info').className='geo-info ok';
-      document.getElementById('geo-info-txt').textContent='Position capturée — précision ±'+S.geo.acc+'m';
+      S.geoStatus='ok';
+      updateGeoDisplay();
     },
-    function(err){var m={1:'Permission refusée',2:'Signal indisponible',3:'Délai dépassé'};setGeoErr(m[err.code]||'Erreur GPS');},
+    function(err){var m={1:'Permission refusée',2:'Signal indisponible',3:'Délai dépassé'};setGeoState('err',m[err.code]||'Erreur GPS');},
     {timeout:12000,enableHighAccuracy:true}
   );
 }
-function setGeoErr(msg){
-  document.getElementById('geo-pill').className='geo-pill err';
-  document.getElementById('geo-dot').className='geo-dot';
-  document.getElementById('geo-pill-txt').textContent='GPS ✗';
-  document.getElementById('geo-info').className='geo-info err';
-  document.getElementById('geo-info-txt').textContent=msg+' — pointage autorisé sans GPS';
+
+function updateGeoDisplay() {
+  if (!S.geo) return;
+  if (S.siteGps && S.geo) {
+    var dist = Math.round(distanceMetres(S.geo.lat, S.geo.lng, S.siteGps.lat, S.siteGps.lng));
+    var rayon = S.siteGps.rayon || 500;
+    if (dist <= rayon) {
+      setGeoState('ok', 'Sur site — précision ±'+S.geo.acc+'m');
+    } else {
+      setGeoState('warn', 'Éloigné du site ('+dist+'m) — vérifiez votre position');
+    }
+  } else {
+    setGeoState('ok', 'Position capturée — précision ±'+S.geo.acc+'m');
+  }
+}
+
+function setGeoState(state, msg) {
+  var pill = document.getElementById('geo-pill');
+  var dot = document.getElementById('geo-dot');
+  var info = document.getElementById('geo-info');
+  pill.className = 'geo-pill ' + state;
+  dot.className = 'geo-dot';
+  document.getElementById('geo-pill-txt').textContent = state==='ok' ? 'GPS ✓' : state==='warn' ? 'GPS ⚠' : 'GPS ✗';
+  info.className = 'geo-info ' + state;
+  document.getElementById('geo-info-txt').textContent = msg + (state==='err' ? ' — pointage autorisé' : '');
 }
 
 function selectType(t){
   S.type=t;
   document.getElementById('card-debut').classList.toggle('selected',t==='debut');
   document.getElementById('card-fin').classList.toggle('selected',t==='fin');
-  // Reset si agent déjà sélectionné
   if (S.selectedAgent) selectAgent(S.selectedAgent);
 }
 
@@ -240,7 +268,10 @@ function loadAgents(){
   var url=S.siteId?'/api/agents?site='+S.siteId:'/api/agents';
   api('GET',url,null).then(function(data){
     S.agents=data.agents||[];
+    S.siteGps=data.siteGps||null;
+    if (S.siteGps && S.geo) updateGeoDisplay();
     if (S.siteId && S.agents.length>0) document.getElementById('site-sub-display').textContent=S.agents.length+' agents affectés';
+    else if (S.siteId && data.message) document.getElementById('site-sub-display').textContent=data.message;
     renderAgents(S.agents);
   }).catch(function(){document.getElementById('list-placeholder').textContent='⚠ Erreur — rechargez la page';});
 }
@@ -263,9 +294,7 @@ function renderAgents(agents){
 function filterAgents(){renderAgents(S.agents);}
 
 function selectAgent(agent){
-  S.selectedAgent=agent;
-  S.sigDrawn=false;
-  clearSig();
+  S.selectedAgent=agent; S.sigDrawn=false; clearSig();
   document.getElementById('check-alert').className='alert danger';
   document.getElementById('sig-field').style.display='none';
   document.getElementById('btn-submit').style.display='none';
@@ -273,7 +302,6 @@ function selectAgent(agent){
   document.getElementById('presta-field').style.display='none';
   renderAgents(S.agents);
   showOverlay('Vérification en cours...');
-
   api('GET','/api/check?agentId='+agent.id+'&type='+S.type,null).then(function(data){
     if (data.alreadyPointed){
       hideOverlay();
@@ -322,21 +350,28 @@ function submitForm(){
   var now=new Date(),heure=now.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
   var typeLabel=S.type==='debut'?'Début de service':'Fin de service';
   var geoStr=S.geo?S.geo.lat.toFixed(5)+', '+S.geo.lng.toFixed(5)+' (±'+S.geo.acc+'m)':'Non disponible';
+  var geoStatut='';
+  if (S.geo && S.siteGps) {
+    var dist=Math.round(distanceMetres(S.geo.lat,S.geo.lng,S.siteGps.lat,S.siteGps.lng));
+    geoStatut=' — '+dist+'m du site';
+  }
   api('POST','/api/pointage',{
     nom:typeLabel+' — '+S.selectedAgent.nom+' — '+heure,
     type:typeLabel,horodatage:now.toISOString(),
     agentId:S.selectedAgent.id,agentNom:S.selectedAgent.nom,
     prestationId:S.prestation?S.prestation.id:null,
     prestationNom:S.prestation?S.prestation.nom:null,
-    siteId:S.siteId,siteName:S.siteName,gps:geoStr
-  }).then(function(result){
+    siteId:S.siteId,siteName:S.siteName,
+    gps:geoStr+geoStatut
+  }).then(function(){
     hideOverlay();
+    var onSite = S.geo && S.siteGps ? distanceMetres(S.geo.lat,S.geo.lng,S.siteGps.lat,S.siteGps.lng) <= S.siteGps.rayon : true;
     document.getElementById('success-detail').innerHTML=
       '<div class="detail-row"><span class="detail-key">Agent</span><span class="detail-val">'+S.selectedAgent.nom+'</span></div>'+
       '<div class="detail-row"><span class="detail-key">Type</span><span class="badge '+(S.type==='debut'?'green':'red')+'">'+typeLabel.toUpperCase()+'</span></div>'+
       '<div class="detail-row"><span class="detail-key">Heure</span><span class="detail-val">'+heure+'</span></div>'+
       (S.prestation?'<div class="detail-row"><span class="detail-key">Prestation</span><span class="detail-val">'+S.prestation.nom+'</span></div>':'')+
-      '<div class="detail-row"><span class="detail-key">GPS</span><span class="detail-val" style="font-size:11px;font-family:DM Mono,monospace">'+geoStr+'</span></div>'+
+      '<div class="detail-row"><span class="detail-key">Position</span><span class="badge '+(onSite?'green':'orange')+'">'+(onSite?'✓ SUR SITE':'⚠ HORS SITE')+'</span></div>';
     showScreen('screen-success');
   }).catch(function(){hideOverlay();alert('Erreur de connexion. Réessayez.');});
 }

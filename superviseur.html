@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jet Guards — Superviseur</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --gold:#C9A84C;--gold-dim:rgba(201,168,76,.15);--gold-border:rgba(201,168,76,.3);
+  --black:#080808;--dark:#111;--dark2:#181818;--dark3:#222;--dark4:#2A2A2A;
+  --gray:#666;--gray2:#444;--white:#F0EDE6;
+  --red:#E24B4A;--green:#1D9E75;--orange:#E8833A;
+  --radius:10px;--radius-sm:6px;
+}
+html,body{min-height:100vh;background:var(--black);font-family:'Syne',sans-serif;color:var(--white);}
+body{padding:0 0 60px;}
+
+/* HEADER */
+.header{
+  background:var(--dark);border-bottom:1px solid var(--dark3);
+  padding:20px 32px;display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:100;
+}
+.header-brand{display:flex;align-items:center;gap:16px;}
+.brand-logo{font-family:'DM Mono',monospace;font-size:11px;color:var(--gold);letter-spacing:.2em;text-transform:uppercase;border:1px solid var(--gold-border);padding:4px 10px;border-radius:4px;}
+.brand-title{font-size:18px;font-weight:600;color:var(--white);}
+.brand-title span{color:var(--gold);}
+.header-date{font-family:'DM Mono',monospace;font-size:12px;color:var(--gray);}
+.header-clock{font-family:'DM Mono',monospace;font-size:14px;color:var(--gold);font-weight:500;}
+
+/* STATS BAR */
+.stats-bar{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:1px;
+  background:var(--dark3);border-bottom:1px solid var(--dark3);
+}
+.stat{background:var(--dark);padding:16px 24px;}
+.stat-val{font-size:28px;font-weight:700;color:var(--white);letter-spacing:-.02em;}
+.stat-val.green{color:var(--green);}
+.stat-val.orange{color:var(--orange);}
+.stat-val.red{color:var(--red);}
+.stat-label{font-family:'DM Mono',monospace;font-size:10px;color:var(--gray);text-transform:uppercase;letter-spacing:.1em;margin-top:4px;}
+
+/* MAIN */
+.main{padding:24px 32px;display:flex;flex-direction:column;gap:20px;}
+
+/* FILTERS */
+.filters{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+.filter-btn{background:var(--dark2);border:1px solid var(--dark3);border-radius:var(--radius-sm);color:var(--gray);font-family:'DM Mono',monospace;font-size:11px;padding:7px 14px;cursor:pointer;transition:all .15s;text-transform:uppercase;letter-spacing:.08em;}
+.filter-btn:hover,.filter-btn.active{background:var(--gold-dim);border-color:var(--gold-border);color:var(--gold);}
+.search-bar{margin-left:auto;position:relative;}
+.search-bar input{background:var(--dark2);border:1px solid var(--dark3);border-radius:var(--radius-sm);color:var(--white);font-family:'Syne',sans-serif;font-size:13px;padding:8px 14px 8px 34px;outline:none;width:240px;transition:border-color .2s;}
+.search-bar input:focus{border-color:var(--gold);}
+.search-bar input::placeholder{color:var(--gray2);}
+.search-bar svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);width:14px;height:14px;stroke:var(--gray);fill:none;stroke-width:2;}
+.refresh-btn{background:var(--dark2);border:1px solid var(--dark3);border-radius:var(--radius-sm);color:var(--gray);font-size:18px;width:34px;height:34px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;}
+.refresh-btn:hover{border-color:var(--gold);color:var(--gold);}
+.refresh-btn.spin{animation:spin .7s linear;}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* GRID */
+.prestas-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(380px,1fr));gap:16px;}
+
+/* CARD */
+.presta-card{
+  background:var(--dark);border:1px solid var(--dark3);border-radius:var(--radius);
+  overflow:hidden;transition:border-color .2s;
+}
+.presta-card:hover{border-color:var(--dark4);}
+.presta-card.complete{border-color:rgba(29,158,117,.2);}
+.presta-card.alert{border-color:rgba(226,75,74,.2);}
+
+.card-header{padding:14px 16px;border-bottom:1px solid var(--dark3);display:flex;align-items:flex-start;justify-content:space-between;gap:10px;}
+.card-site{font-size:13px;font-weight:600;color:var(--white);line-height:1.3;}
+.card-client{font-family:'DM Mono',monospace;font-size:10px;color:var(--gray);margin-top:3px;text-transform:uppercase;letter-spacing:.08em;}
+.card-status{flex-shrink:0;}
+.status-badge{font-family:'DM Mono',monospace;font-size:10px;padding:3px 8px;border-radius:20px;letter-spacing:.05em;}
+.status-badge.ok{background:rgba(29,158,117,.1);color:#5DCAA5;border:1px solid rgba(29,158,117,.25);}
+.status-badge.partial{background:rgba(232,131,58,.1);color:#E8833A;border:1px solid rgba(232,131,58,.25);}
+.status-badge.none{background:var(--dark2);color:var(--gray);border:1px solid var(--dark3);}
+
+.card-body{padding:14px 16px;display:flex;flex-direction:column;gap:10px;}
+
+.progress-row{display:flex;align-items:center;gap:10px;}
+.progress-bar{flex:1;height:4px;background:var(--dark3);border-radius:2px;overflow:hidden;}
+.progress-fill{height:100%;border-radius:2px;background:var(--green);transition:width .3s;}
+.progress-text{font-family:'DM Mono',monospace;font-size:11px;color:var(--gray);white-space:nowrap;}
+
+.agents-row{display:flex;flex-wrap:wrap;gap:4px;}
+.agent-chip{font-family:'DM Mono',monospace;font-size:10px;padding:2px 8px;border-radius:12px;border:1px solid var(--dark3);color:var(--gray);background:var(--dark2);}
+.agent-chip.pointed{background:rgba(29,158,117,.08);border-color:rgba(29,158,117,.25);color:#5DCAA5;}
+.agent-chip.missing{background:rgba(226,75,74,.08);border-color:rgba(226,75,74,.2);color:#F09595;}
+
+.card-footer{padding:12px 16px;border-top:1px solid var(--dark3);display:flex;align-items:center;gap:8px;}
+.btn-qr{flex:1;background:var(--gold);color:var(--black);border:none;border-radius:var(--radius-sm);padding:9px;font-family:'Syne',sans-serif;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:background .15s;}
+.btn-qr:hover{background:#D4A940;}
+.btn-detail{background:var(--dark2);border:1px solid var(--dark3);border-radius:var(--radius-sm);color:var(--gray);font-family:'DM Mono',monospace;font-size:11px;padding:9px 14px;cursor:pointer;transition:all .15s;}
+.btn-detail:hover{border-color:var(--gold);color:var(--gold);}
+
+/* LOADING */
+.loading{display:flex;align-items:center;justify-content:center;gap:12px;padding:60px;color:var(--gray);font-family:'DM Mono',monospace;font-size:12px;}
+.spinner{width:20px;height:20px;border:2px solid var(--dark3);border-top-color:var(--gold);border-radius:50%;animation:spin .7s linear infinite;}
+
+/* QR MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;z-index:500;opacity:0;pointer-events:none;transition:opacity .2s;}
+.modal-overlay.show{opacity:1;pointer-events:all;}
+.modal{background:var(--dark);border:1px solid var(--dark3);border-radius:var(--radius);padding:28px;max-width:420px;width:90%;display:flex;flex-direction:column;gap:20px;transform:scale(.95);transition:transform .2s;}
+.modal-overlay.show .modal{transform:scale(1);}
+.modal-title{font-size:16px;font-weight:600;}
+.modal-title span{color:var(--gold);}
+.modal-site{font-family:'DM Mono',monospace;font-size:11px;color:var(--gray);}
+.qr-wrap{background:#fff;border-radius:var(--radius-sm);padding:20px;display:flex;align-items:center;justify-content:center;align-self:center;}
+.modal-url{background:var(--dark2);border:1px solid var(--dark3);border-radius:var(--radius-sm);padding:10px 14px;font-family:'DM Mono',monospace;font-size:10px;color:var(--gray);word-break:break-all;line-height:1.5;}
+.modal-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.btn-copy{background:var(--dark2);border:1px solid var(--dark3);border-radius:var(--radius-sm);color:var(--white);font-family:'Syne',sans-serif;font-size:13px;padding:11px;cursor:pointer;transition:all .15s;}
+.btn-copy:hover{border-color:var(--gold);color:var(--gold);}
+.btn-print{background:var(--gold);border:none;border-radius:var(--radius-sm);color:var(--black);font-family:'Syne',sans-serif;font-size:13px;font-weight:600;padding:11px;cursor:pointer;transition:background .15s;}
+.btn-print:hover{background:#D4A940;}
+.btn-close{background:none;border:none;color:var(--gray);font-size:20px;cursor:pointer;align-self:flex-end;margin-top:-8px;}
+
+/* DETAIL PANEL */
+.detail-panel{position:fixed;right:0;top:0;bottom:0;width:420px;background:var(--dark);border-left:1px solid var(--dark3);z-index:400;transform:translateX(100%);transition:transform .3s;overflow-y:auto;padding:24px;}
+.detail-panel.open{transform:translateX(0);}
+.panel-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px;}
+.panel-title{font-size:15px;font-weight:600;}
+.panel-sub{font-family:'DM Mono',monospace;font-size:11px;color:var(--gray);margin-top:4px;}
+.panel-close{background:none;border:none;color:var(--gray);font-size:22px;cursor:pointer;}
+.pointage-list{display:flex;flex-direction:column;gap:10px;}
+.pointage-item{background:var(--dark2);border:1px solid var(--dark3);border-radius:var(--radius-sm);padding:12px 14px;}
+.pointage-agent{font-size:13px;font-weight:500;}
+.pointage-meta{font-family:'DM Mono',monospace;font-size:11px;color:var(--gray);margin-top:4px;display:flex;gap:10px;flex-wrap:wrap;}
+.pointage-type{font-family:'DM Mono',monospace;font-size:10px;padding:2px 8px;border-radius:12px;}
+.pointage-type.debut{background:rgba(29,158,117,.1);color:#5DCAA5;border:1px solid rgba(29,158,117,.25);}
+.pointage-type.fin{background:rgba(226,75,74,.1);color:#F09595;border:1px solid rgba(226,75,74,.25);}
+.no-data{font-family:'DM Mono',monospace;font-size:12px;color:var(--gray);padding:20px;text-align:center;}
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-brand">
+    <div class="brand-logo">Jet Guards</div>
+    <div class="brand-title">Interface <span>Superviseur</span></div>
+  </div>
+  <div style="display:flex;align-items:center;gap:20px;">
+    <div>
+      <div class="header-date" id="hdr-date">—</div>
+      <div class="header-clock" id="hdr-clock">—</div>
+    </div>
+  </div>
+</header>
+
+<div class="stats-bar">
+  <div class="stat"><div class="stat-val" id="stat-prestas">—</div><div class="stat-label">Prestations actives</div></div>
+  <div class="stat"><div class="stat-val green" id="stat-pointes">—</div><div class="stat-label">Agents pointés</div></div>
+  <div class="stat"><div class="stat-val orange" id="stat-manquants">—</div><div class="stat-label">Non pointés</div></div>
+  <div class="stat"><div class="stat-val" id="stat-taux">—</div><div class="stat-label">Taux de pointage</div></div>
+</div>
+
+<div class="main">
+  <div class="filters">
+    <button class="filter-btn active" onclick="setFilter('all',this)">Toutes</button>
+    <button class="filter-btn" onclick="setFilter('partial',this)">Incomplets</button>
+    <button class="filter-btn" onclick="setFilter('complete',this)">Complets</button>
+    <button class="filter-btn" onclick="setFilter('none',this)">Sans pointage</button>
+    <div class="search-bar">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input type="text" id="search-bar" placeholder="Rechercher un site..." oninput="renderCards()">
+    </div>
+    <button class="refresh-btn" id="refresh-btn" onclick="refresh()" title="Actualiser">↻</button>
+  </div>
+
+  <div id="cards-container">
+    <div class="loading"><div class="spinner"></div>Chargement des prestations...</div>
+  </div>
+</div>
+
+<!-- QR MODAL -->
+<div class="modal-overlay" id="qr-modal">
+  <div class="modal">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+      <div>
+        <div class="modal-title">QR Code — <span id="qr-site-name">—</span></div>
+        <div class="modal-site" id="qr-presta-name">—</div>
+      </div>
+      <button class="btn-close" onclick="closeQR()">✕</button>
+    </div>
+    <div class="qr-wrap"><div id="qr-canvas"></div></div>
+    <div class="modal-url" id="qr-url-display">—</div>
+    <div class="modal-actions">
+      <button class="btn-copy" onclick="copyURL()">📋 Copier l'URL</button>
+      <button class="btn-print" onclick="printQR()">🖨 Imprimer</button>
+    </div>
+  </div>
+</div>
+
+<!-- DETAIL PANEL -->
+<div class="detail-panel" id="detail-panel">
+  <div class="panel-header">
+    <div>
+      <div class="panel-title" id="panel-title">—</div>
+      <div class="panel-sub" id="panel-sub">—</div>
+    </div>
+    <button class="panel-close" onclick="closePanel()">✕</button>
+  </div>
+  <div class="pointage-list" id="panel-content">
+    <div class="no-data">Sélectionnez une prestation</div>
+  </div>
+</div>
+
+<script>
+var APP_URL = window.location.origin;
+var PRESTAS_DB   = '328a12376ab380f2926dd048912c453b';
+var POINTAGES_DB = 'b0b4acfd6dac4d06a41d66c658675d8c';
+
+var DATA = {prestas: [], pointages: [], filter: 'all'};
+var currentQRUrl = '';
+
+// ── CLOCK ──────────────────────────────────────────────────────────────────
+function initClock() {
+  function tick() {
+    var now = new Date();
+    var d = now.toLocaleDateString('fr-FR',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});
+    document.getElementById('hdr-date').textContent = d.charAt(0).toUpperCase()+d.slice(1);
+    document.getElementById('hdr-clock').textContent = now.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  }
+  tick(); setInterval(tick,1000);
+}
+
+// ── API ────────────────────────────────────────────────────────────────────
+function api(method, path, body) {
+  return fetch(path,{method:method,headers:{'Content-Type':'application/json'},body:body?JSON.stringify(body):undefined}).then(function(r){return r.json();});
+}
+
+// ── LOAD DATA ──────────────────────────────────────────────────────────────
+function loadData() {
+  var today = new Date().toISOString().split('T')[0];
+  Promise.all([
+    api('GET', '/api/superviseur/prestas?date='+today, null),
+    api('GET', '/api/superviseur/pointages?date='+today, null)
+  ]).then(function(results) {
+    DATA.prestas = results[0].prestas || [];
+    DATA.pointages = results[1].pointages || [];
+    updateStats();
+    renderCards();
+  }).catch(function(e) {
+    document.getElementById('cards-container').innerHTML = '<div class="no-data">⚠ Erreur de chargement — <button onclick="loadData()" style="background:none;border:none;color:var(--gold);cursor:pointer;font-family:DM Mono,monospace">réessayer</button></div>';
+  });
+}
+
+function refresh() {
+  var btn = document.getElementById('refresh-btn');
+  btn.classList.add('spin');
+  setTimeout(function(){btn.classList.remove('spin');}, 700);
+  loadData();
+}
+
+// ── STATS ──────────────────────────────────────────────────────────────────
+function updateStats() {
+  var totalAgents = 0, totalPointes = 0;
+  DATA.prestas.forEach(function(pr) {
+    totalAgents += pr.agents.length;
+    totalPointes += getPointesCount(pr.id);
+  });
+  var manquants = totalAgents - totalPointes;
+  var taux = totalAgents > 0 ? Math.round(totalPointes/totalAgents*100) : 0;
+  document.getElementById('stat-prestas').textContent = DATA.prestas.length;
+  document.getElementById('stat-pointes').textContent = totalPointes;
+  document.getElementById('stat-manquants').textContent = manquants;
+  document.getElementById('stat-taux').textContent = taux+'%';
+}
+
+function getPointesCount(prestaId) {
+  var agentIds = new Set();
+  DATA.pointages.forEach(function(p) {
+    if (p.prestationId === prestaId && p.type === 'Début de service') agentIds.add(p.agentId);
+  });
+  return agentIds.size;
+}
+
+// ── RENDER CARDS ───────────────────────────────────────────────────────────
+function setFilter(f, btn) {
+  DATA.filter = f;
+  document.querySelectorAll('.filter-btn').forEach(function(b){b.classList.remove('active');});
+  btn.classList.add('active');
+  renderCards();
+}
+
+function renderCards() {
+  var q = document.getElementById('search-bar').value.toLowerCase();
+  var prestas = DATA.prestas.filter(function(pr) {
+    if (q && pr.nom.toLowerCase().indexOf(q) === -1 && pr.site.toLowerCase().indexOf(q) === -1) return false;
+    var count = getPointesCount(pr.id);
+    var total = pr.agents.length;
+    if (DATA.filter === 'complete' && count < total) return false;
+    if (DATA.filter === 'partial' && (count === 0 || count >= total)) return false;
+    if (DATA.filter === 'none' && count > 0) return false;
+    return true;
+  });
+
+  if (!prestas.length) {
+    document.getElementById('cards-container').innerHTML = '<div class="no-data" style="padding:40px;text-align:center;color:var(--gray);font-family:DM Mono,monospace;font-size:12px;">Aucune prestation trouvée</div>';
+    return;
+  }
+
+  var html = '<div class="prestas-grid">';
+  prestas.forEach(function(pr) {
+    var pointed = getPointesCount(pr.id);
+    var total = pr.agents.length;
+    var pct = total > 0 ? Math.round(pointed/total*100) : 0;
+    var statusClass = pointed === 0 ? 'none' : pointed >= total ? 'ok' : 'partial';
+    var statusLabel = pointed === 0 ? 'Aucun pointage' : pointed >= total ? 'Complet' : pointed+'/'+total+' pointés';
+    var cardClass = pointed >= total && total > 0 ? 'complete' : pointed === 0 ? '' : '';
+
+    html += '<div class="presta-card '+cardClass+'">';
+    html += '<div class="card-header">';
+    html += '<div><div class="card-site">'+escHtml(pr.nom)+'</div><div class="card-client">'+escHtml(pr.site)+'</div></div>';
+    html += '<div class="card-status"><span class="status-badge '+statusClass+'">'+statusLabel+'</span></div>';
+    html += '</div>';
+    html += '<div class="card-body">';
+    html += '<div class="progress-row"><div class="progress-bar"><div class="progress-fill" style="width:'+pct+'%"></div></div><div class="progress-text">'+pointed+'/'+total+'</div></div>';
+
+    if (total <= 15) {
+      html += '<div class="agents-row">';
+      pr.agents.forEach(function(a) {
+        var hasPointed = DATA.pointages.some(function(p){return p.agentId===a.id&&p.prestationId===pr.id&&p.type==='Début de service';});
+        html += '<div class="agent-chip '+(hasPointed?'pointed':'missing')+'">'+escHtml(a.nom.split(' ').map(function(w){return w[0];}).slice(0,2).join('')+'. '+a.nom.split(' ').slice(-1)[0])+'</div>';
+      });
+      html += '</div>';
+    }
+
+    html += '</div>';
+    html += '<div class="card-footer">';
+    html += '<button class="btn-qr" onclick=\'showQR('+JSON.stringify(pr).replace(/'/g,"&#39;")+')\'>⬛ QR Code</button>';
+    html += '<button class="btn-detail" onclick=\'showDetail('+JSON.stringify(pr).replace(/'/g,"&#39;")+')\'>Détail →</button>';
+    html += '</div>';
+    html += '</div>';
+  });
+  html += '</div>';
+  document.getElementById('cards-container').innerHTML = html;
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── QR CODE ────────────────────────────────────────────────────────────────
+function showQR(presta) {
+  var qrUrl = APP_URL + '?site=' + presta.siteId + '&nom=' + encodeURIComponent(presta.site);
+  currentQRUrl = qrUrl;
+  document.getElementById('qr-site-name').textContent = presta.site;
+  document.getElementById('qr-presta-name').textContent = presta.nom;
+  document.getElementById('qr-url-display').textContent = qrUrl;
+  var canvas = document.getElementById('qr-canvas');
+  canvas.innerHTML = '';
+  new QRCode(canvas, {text: qrUrl, width: 200, height: 200, colorDark:'#000', colorLight:'#fff', correctLevel: QRCode.CorrectLevel.H});
+  document.getElementById('qr-modal').classList.add('show');
+}
+
+function closeQR() { document.getElementById('qr-modal').classList.remove('show'); }
+
+function copyURL() {
+  navigator.clipboard.writeText(currentQRUrl).then(function() {
+    var btn = document.querySelector('.btn-copy');
+    btn.textContent = '✓ Copié !';
+    setTimeout(function(){btn.textContent='📋 Copier l\'URL';}, 2000);
+  });
+}
+
+function printQR() {
+  var w = window.open('', '_blank');
+  var qrSrc = document.querySelector('#qr-canvas img');
+  if (!qrSrc) { alert('QR code non généré'); return; }
+  w.document.write('<html><body style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;font-family:sans-serif;gap:16px;">');
+  w.document.write('<div style="font-size:18px;font-weight:bold;">'+document.getElementById('qr-site-name').textContent+'</div>');
+  w.document.write('<div style="font-size:13px;color:#666;">'+document.getElementById('qr-presta-name').textContent+'</div>');
+  w.document.write('<img src="'+qrSrc.src+'" style="width:250px;height:250px;">');
+  w.document.write('<div style="font-size:10px;color:#999;max-width:300px;text-align:center;">'+currentQRUrl+'</div>');
+  w.document.write('</body></html>');
+  w.document.close();
+  w.print();
+}
+
+// ── DETAIL PANEL ───────────────────────────────────────────────────────────
+function showDetail(presta) {
+  document.getElementById('panel-title').textContent = presta.nom;
+  document.getElementById('panel-sub').textContent = presta.site + ' — ' + presta.agents.length + ' agents affectés';
+  var pointages = DATA.pointages.filter(function(p){return p.prestationId===presta.id;});
+  var html = '';
+  if (!pointages.length) {
+    html = '<div class="no-data">Aucun pointage pour cette prestation</div>';
+  } else {
+    pointages.sort(function(a,b){return new Date(a.horodatage)-new Date(b.horodatage);});
+    pointages.forEach(function(p) {
+      var h = new Date(p.horodatage).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+      var typeClass = p.type === 'Début de service' ? 'debut' : 'fin';
+      html += '<div class="pointage-item">';
+      html += '<div style="display:flex;align-items:center;justify-content:space-between;">';
+      html += '<div class="pointage-agent">'+escHtml(p.agentNom)+'</div>';
+      html += '<span class="pointage-type '+typeClass+'">'+p.type+'</span>';
+      html += '</div>';
+      html += '<div class="pointage-meta"><span>🕐 '+h+'</span>'+(p.gps?'<span>📍 GPS</span>':'')+'</div>';
+      html += '</div>';
+    });
+
+    // Agents manquants
+    var pointedIds = new Set(pointages.filter(function(p){return p.type==='Début de service';}).map(function(p){return p.agentId;}));
+    var missing = presta.agents.filter(function(a){return !pointedIds.has(a.id);});
+    if (missing.length) {
+      html += '<div style="margin-top:12px;font-family:DM Mono,monospace;font-size:10px;color:var(--gray);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;">Non pointés ('+missing.length+')</div>';
+      missing.forEach(function(a) {
+        html += '<div class="pointage-item" style="opacity:.5;"><div class="pointage-agent">'+escHtml(a.nom)+'</div><div class="pointage-meta"><span>⏳ En attente</span></div></div>';
+      });
+    }
+  }
+  document.getElementById('panel-content').innerHTML = html;
+  document.getElementById('detail-panel').classList.add('open');
+}
+
+function closePanel() { document.getElementById('detail-panel').classList.remove('open'); }
+
+document.getElementById('qr-modal').addEventListener('click', function(e) { if(e.target===this) closeQR(); });
+
+// ── INIT ───────────────────────────────────────────────────────────────────
+initClock();
+loadData();
+setInterval(loadData, 60000); // Refresh auto toutes les minutes
+</script>
+</body>
+</html>

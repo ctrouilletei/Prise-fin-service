@@ -59,12 +59,12 @@ input::placeholder{color:var(--gray-light)}
 .empty-list{padding:20px;text-align:center;color:var(--gray);font-size:13px;font-family:'DM Mono',monospace}
 .alert{border-radius:var(--radius-sm);padding:10px 14px;font-size:12px;font-family:'DM Mono',monospace;display:none;align-items:center;gap:8px;line-height:1.4}
 .alert.danger{background:rgba(226,75,74,.1);border:1px solid rgba(226,75,74,.3);color:#F09595}
-.alert.warn{background:rgba(232,131,58,.1);border:1px solid rgba(232,131,58,.3);color:#E8833A}
 .alert.show{display:flex}
 .presta-badge{background:rgba(201,168,76,.08);border:1px solid rgba(201,168,76,.25);border-radius:var(--radius-sm);padding:10px 14px;display:flex;align-items:center;gap:10px}
 .presta-name{font-size:13px;font-weight:500;color:var(--gold)}
 .presta-sub{font-size:11px;color:var(--gray);font-family:'DM Mono',monospace}
 .sig-wrap{background:var(--dark);border:1px solid var(--dark3);border-radius:var(--radius-sm);padding:8px}
+.sig-label{font-size:11px;color:var(--gray);font-family:'DM Mono',monospace;margin-bottom:6px}
 canvas{width:100%;height:130px;display:block;background:#fff;border-radius:4px;touch-action:none;cursor:crosshair}
 .sig-footer{display:flex;justify-content:flex-end;margin-top:6px}
 .btn-clear{background:none;border:none;color:var(--gray);font-family:'DM Mono',monospace;font-size:11px;cursor:pointer;padding:4px 0}
@@ -158,6 +158,7 @@ canvas{width:100%;height:130px;display:block;background:#fff;border-radius:4px;t
       <div class="field" id="sig-field" style="display:none">
         <div class="field-label">Signature *</div>
         <div class="sig-wrap">
+          <div class="sig-label">Signez dans le cadre ci-dessous</div>
           <canvas id="sig-canvas" width="800" height="260"></canvas>
           <div class="sig-footer"><button class="btn-clear" onclick="clearSig()">✕ Effacer</button></div>
         </div>
@@ -181,106 +182,64 @@ canvas{width:100%;height:130px;display:block;background:#fff;border-radius:4px;t
 </div>
 <div class="overlay" id="overlay"><div class="spinner"></div><div class="overlay-msg" id="overlay-msg">Chargement...</div></div>
 <script>
-var S = {type:'debut',siteId:null,siteName:null,agents:[],siteGps:null,selectedAgent:null,prestation:null,sigDrawn:false,geo:null,geoStatus:'pending'};
+var S={type:'debut',siteId:null,siteName:null,agents:[],siteGps:null,selectedAgent:null,prestation:null,sigDrawn:false,geo:null};
 
-function api(method, path, body) {
-  return fetch(path,{method:method,headers:{'Content-Type':'application/json'},body:body?JSON.stringify(body):undefined}).then(function(r){return r.json();});
-}
+function api(method,path,body){return fetch(path,{method:method,headers:{'Content-Type':'application/json'},body:body?JSON.stringify(body):undefined}).then(function(r){return r.json();});}
 
-// Calcul distance haversine en mètres
-function distanceMetres(lat1, lng1, lat2, lng2) {
-  var R = 6371000;
-  var dLat = (lat2-lat1)*Math.PI/180;
-  var dLng = (lng2-lng1)*Math.PI/180;
-  var a = Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)*Math.sin(dLng/2);
-  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
-}
+function distanceMetres(lat1,lng1,lat2,lng2){var R=6371000,dLat=(lat2-lat1)*Math.PI/180,dLng=(lng2-lng1)*Math.PI/180,a=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)*Math.sin(dLng/2);return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));}
 
-window.addEventListener('DOMContentLoaded', function() {
-  initClock(); initGeo();
-  var p = new URLSearchParams(window.location.search);
-  S.siteId = p.get('site');
-  S.siteName = p.get('nom') ? decodeURIComponent(p.get('nom')) : null;
-  if (S.siteId) {
-    document.getElementById('site-banner').style.display='flex';
-    document.getElementById('site-name-display').textContent=S.siteName||'Site';
-  }
+window.addEventListener('DOMContentLoaded',function(){
+  initClock();initGeo();
+  var p=new URLSearchParams(window.location.search);
+  S.siteId=p.get('site');
+  S.siteName=p.get('nom')?decodeURIComponent(p.get('nom')):null;
+  if(S.siteId){document.getElementById('site-banner').style.display='flex';document.getElementById('site-name-display').textContent=S.siteName||'Site';}
   loadAgents();
 });
 
-function initClock() {
-  function tick(){
-    var now=new Date();
-    var d=now.toLocaleDateString('fr-FR',{weekday:'long',day:'2-digit',month:'long'});
-    document.getElementById('clock-date').textContent=d.charAt(0).toUpperCase()+d.slice(1);
-    document.getElementById('clock-time').textContent=now.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
-  }
-  tick(); setInterval(tick,1000);
+function initClock(){
+  function tick(){var now=new Date(),d=now.toLocaleDateString('fr-FR',{weekday:'long',day:'2-digit',month:'long'});document.getElementById('clock-date').textContent=d.charAt(0).toUpperCase()+d.slice(1);document.getElementById('clock-time').textContent=now.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});}
+  tick();setInterval(tick,1000);
 }
 
-function initGeo() {
-  if (!navigator.geolocation){setGeoState('err','GPS non disponible');return;}
+function initGeo(){
+  if(!navigator.geolocation){setGeoState('err','GPS non disponible');return;}
   navigator.geolocation.getCurrentPosition(
-    function(pos){
-      S.geo={lat:pos.coords.latitude,lng:pos.coords.longitude,acc:Math.round(pos.coords.accuracy)};
-      S.geoStatus='ok';
-      updateGeoDisplay();
-    },
+    function(pos){S.geo={lat:pos.coords.latitude,lng:pos.coords.longitude,acc:Math.round(pos.coords.accuracy)};updateGeoDisplay();},
     function(err){var m={1:'Permission refusée',2:'Signal indisponible',3:'Délai dépassé'};setGeoState('err',m[err.code]||'Erreur GPS');},
     {timeout:12000,enableHighAccuracy:true}
   );
 }
-
-function updateGeoDisplay() {
-  if (!S.geo) return;
-  if (S.siteGps && S.geo) {
-    var dist = Math.round(distanceMetres(S.geo.lat, S.geo.lng, S.siteGps.lat, S.siteGps.lng));
-    var rayon = S.siteGps.rayon || 500;
-    if (dist <= rayon) {
-      setGeoState('ok', 'Sur site — précision ±'+S.geo.acc+'m');
-    } else {
-      setGeoState('warn', 'Éloigné du site ('+dist+'m) — vérifiez votre position');
-    }
-  } else {
-    setGeoState('ok', 'Position capturée — précision ±'+S.geo.acc+'m');
-  }
+function updateGeoDisplay(){
+  if(!S.geo)return;
+  if(S.siteGps&&S.geo){var dist=Math.round(distanceMetres(S.geo.lat,S.geo.lng,S.siteGps.lat,S.siteGps.lng)),rayon=S.siteGps.rayon||500;setGeoState(dist<=rayon?'ok':'warn',dist<=rayon?'Sur site — précision ±'+S.geo.acc+'m':'Éloigné du site ('+dist+'m) — vérifiez votre position');}
+  else{setGeoState('ok','Position capturée — précision ±'+S.geo.acc+'m');}
+}
+function setGeoState(state,msg){
+  document.getElementById('geo-pill').className='geo-pill '+state;
+  document.getElementById('geo-dot').className='geo-dot';
+  document.getElementById('geo-pill-txt').textContent=state==='ok'?'GPS ✓':state==='warn'?'GPS ⚠':'GPS ✗';
+  document.getElementById('geo-info').className='geo-info '+state;
+  document.getElementById('geo-info-txt').textContent=msg+(state==='err'?' — pointage autorisé':'');
 }
 
-function setGeoState(state, msg) {
-  var pill = document.getElementById('geo-pill');
-  var dot = document.getElementById('geo-dot');
-  var info = document.getElementById('geo-info');
-  pill.className = 'geo-pill ' + state;
-  dot.className = 'geo-dot';
-  document.getElementById('geo-pill-txt').textContent = state==='ok' ? 'GPS ✓' : state==='warn' ? 'GPS ⚠' : 'GPS ✗';
-  info.className = 'geo-info ' + state;
-  document.getElementById('geo-info-txt').textContent = msg + (state==='err' ? ' — pointage autorisé' : '');
-}
-
-function selectType(t){
-  S.type=t;
-  document.getElementById('card-debut').classList.toggle('selected',t==='debut');
-  document.getElementById('card-fin').classList.toggle('selected',t==='fin');
-  if (S.selectedAgent) selectAgent(S.selectedAgent);
-}
+function selectType(t){S.type=t;document.getElementById('card-debut').classList.toggle('selected',t==='debut');document.getElementById('card-fin').classList.toggle('selected',t==='fin');if(S.selectedAgent)selectAgent(S.selectedAgent);}
 
 function loadAgents(){
-  var url=S.siteId?'/api/agents?site='+S.siteId:'/api/agents';
-  api('GET',url,null).then(function(data){
-    S.agents=data.agents||[];
-    S.siteGps=data.siteGps||null;
-    if (S.siteGps && S.geo) updateGeoDisplay();
-    if (S.siteId && S.agents.length>0) document.getElementById('site-sub-display').textContent=S.agents.length+' agents affectés';
-    else if (S.siteId && data.message) document.getElementById('site-sub-display').textContent=data.message;
+  var u=S.siteId?'/api/agents?site='+S.siteId:'/api/agents';
+  api('GET',u,null).then(function(data){
+    S.agents=data.agents||[];S.siteGps=data.siteGps||null;
+    if(S.siteGps&&S.geo)updateGeoDisplay();
+    if(S.siteId&&S.agents.length>0)document.getElementById('site-sub-display').textContent=S.agents.length+' agents affectés';
+    else if(S.siteId&&data.message)document.getElementById('site-sub-display').textContent=data.message;
     renderAgents(S.agents);
   }).catch(function(){document.getElementById('list-placeholder').textContent='⚠ Erreur — rechargez la page';});
 }
 
 function renderAgents(agents){
-  var list=document.getElementById('agent-list');
-  var q=document.getElementById('search-input').value.toLowerCase();
+  var list=document.getElementById('agent-list'),q=document.getElementById('search-input').value.toLowerCase();
   var f=q?agents.filter(function(a){return a.nom.toLowerCase().indexOf(q)!==-1;}):agents;
-  if (!f.length){list.innerHTML='<div class="empty-list">Aucun agent trouvé</div>';return;}
+  if(!f.length){list.innerHTML='<div class="empty-list">Aucun agent trouvé</div>';return;}
   list.innerHTML=f.map(function(a){
     var ini=a.nom.split(' ').map(function(w){return w[0];}).slice(0,2).join('').toUpperCase();
     var sel=S.selectedAgent&&S.selectedAgent.id===a.id;
@@ -290,11 +249,10 @@ function renderAgents(agents){
       '<div><div class="agent-name">'+a.nom+'</div><div class="agent-meta">'+meta+'</div></div></div>';
   }).join('');
 }
-
 function filterAgents(){renderAgents(S.agents);}
 
 function selectAgent(agent){
-  S.selectedAgent=agent; S.sigDrawn=false; clearSig();
+  S.selectedAgent=agent;S.sigDrawn=false;clearSig();
   document.getElementById('check-alert').className='alert danger';
   document.getElementById('sig-field').style.display='none';
   document.getElementById('btn-submit').style.display='none';
@@ -303,31 +261,19 @@ function selectAgent(agent){
   renderAgents(S.agents);
   showOverlay('Vérification en cours...');
   api('GET','/api/check?agentId='+agent.id+'&type='+S.type,null).then(function(data){
-    if (data.alreadyPointed){
-      hideOverlay();
-      showScreen('screen-blocked');
-      document.getElementById('blocked-msg').textContent=(S.type==='debut'?'Début de service déjà pointé aujourd\'hui à ':'Fin de service déjà pointée aujourd\'hui à ')+data.heure;
-      return;
-    }
-    if (S.type==='fin'){
+    if(data.alreadyPointed){hideOverlay();showScreen('screen-blocked');document.getElementById('blocked-msg').textContent=(S.type==='debut'?'Début de service déjà pointé aujourd\'hui à ':'Fin de service déjà pointée aujourd\'hui à ')+data.heure;return;}
+    if(S.type==='fin'){
       api('GET','/api/check?agentId='+agent.id+'&type=debut',null).then(function(d2){
         hideOverlay();
-        if (!d2.alreadyPointed){
-          document.getElementById('check-alert').textContent='⚠ Vous n\'avez pas encore pointé votre début de service aujourd\'hui';
-          document.getElementById('check-alert').className='alert danger show';
-        } else { showSig(agent); }
+        if(!d2.alreadyPointed){document.getElementById('check-alert').textContent='⚠ Vous n\'avez pas encore pointé votre début de service aujourd\'hui';document.getElementById('check-alert').className='alert danger show';}
+        else{showSig(agent);}
       }).catch(function(){hideOverlay();showSig(agent);});
-    } else { hideOverlay(); showSig(agent); }
+    }else{hideOverlay();showSig(agent);}
   }).catch(function(){hideOverlay();showSig(agent);});
 }
 
 function showSig(agent){
-  if (agent.prestationId){
-    S.prestation={id:agent.prestationId,nom:agent.prestationNom};
-    document.getElementById('presta-name').textContent=agent.prestationNom||'Prestation du jour';
-    document.getElementById('presta-sub').textContent=S.siteName||'';
-    document.getElementById('presta-field').style.display='flex';
-  }
+  if(agent.prestationId){S.prestation={id:agent.prestationId,nom:agent.prestationNom};document.getElementById('presta-name').textContent=agent.prestationNom||'Prestation du jour';document.getElementById('presta-sub').textContent=S.siteName||'';document.getElementById('presta-field').style.display='flex';}
   document.getElementById('sig-field').style.display='flex';
   document.getElementById('btn-submit').style.display='flex';
   document.getElementById('btn-submit').disabled=false;
@@ -345,16 +291,15 @@ canvas.addEventListener('touchend',function(){drawing=false;});
 function clearSig(){ctx.clearRect(0,0,canvas.width,canvas.height);S.sigDrawn=false;}
 
 function submitForm(){
-  if (!S.sigDrawn){document.getElementById('sig-alert').textContent='Veuillez signer avant de valider';document.getElementById('sig-alert').className='alert danger show';return;}
-  showOverlay('Enregistrement dans Notion...');
+  if(!S.sigDrawn){document.getElementById('sig-alert').textContent='Veuillez signer avant de valider';document.getElementById('sig-alert').className='alert danger show';return;}
+  showOverlay('Envoi de la signature...');
   var now=new Date(),heure=now.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
   var typeLabel=S.type==='debut'?'Début de service':'Fin de service';
   var geoStr=S.geo?S.geo.lat.toFixed(5)+', '+S.geo.lng.toFixed(5)+' (±'+S.geo.acc+'m)':'Non disponible';
   var geoStatut='';
-  if (S.geo && S.siteGps) {
-    var dist=Math.round(distanceMetres(S.geo.lat,S.geo.lng,S.siteGps.lat,S.siteGps.lng));
-    geoStatut=' — '+dist+'m du site';
-  }
+  if(S.geo&&S.siteGps){var dist=Math.round(distanceMetres(S.geo.lat,S.geo.lng,S.siteGps.lat,S.siteGps.lng));geoStatut=' — '+dist+'m du site';}
+  var signatureBase64=canvas.toDataURL('image/png');
+  document.getElementById('overlay-msg').textContent='Enregistrement dans Notion...';
   api('POST','/api/pointage',{
     nom:typeLabel+' — '+S.selectedAgent.nom+' — '+heure,
     type:typeLabel,horodatage:now.toISOString(),
@@ -362,16 +307,18 @@ function submitForm(){
     prestationId:S.prestation?S.prestation.id:null,
     prestationNom:S.prestation?S.prestation.nom:null,
     siteId:S.siteId,siteName:S.siteName,
-    gps:geoStr+geoStatut
-  }).then(function(){
+    gps:geoStr+geoStatut,
+    signature:signatureBase64
+  }).then(function(result){
     hideOverlay();
-    var onSite = S.geo && S.siteGps ? distanceMetres(S.geo.lat,S.geo.lng,S.siteGps.lat,S.siteGps.lng) <= S.siteGps.rayon : true;
+    var onSite=S.geo&&S.siteGps?distanceMetres(S.geo.lat,S.geo.lng,S.siteGps.lat,S.siteGps.lng)<=S.siteGps.rayon:true;
     document.getElementById('success-detail').innerHTML=
       '<div class="detail-row"><span class="detail-key">Agent</span><span class="detail-val">'+S.selectedAgent.nom+'</span></div>'+
       '<div class="detail-row"><span class="detail-key">Type</span><span class="badge '+(S.type==='debut'?'green':'red')+'">'+typeLabel.toUpperCase()+'</span></div>'+
       '<div class="detail-row"><span class="detail-key">Heure</span><span class="detail-val">'+heure+'</span></div>'+
       (S.prestation?'<div class="detail-row"><span class="detail-key">Prestation</span><span class="detail-val">'+S.prestation.nom+'</span></div>':'')+
-      '<div class="detail-row"><span class="detail-key">Position</span><span class="badge '+(onSite?'green':'orange')+'">'+(onSite?'✓ SUR SITE':'⚠ HORS SITE')+'</span></div>';
+      '<div class="detail-row"><span class="detail-key">Position</span><span class="badge '+(onSite?'green':'orange')+'">'+(onSite?'✓ SUR SITE':'⚠ HORS SITE')+'</span></div>'+
+      '<div class="detail-row"><span class="detail-key">Signature</span><span class="detail-val" style="color:#5DCAA5">✓ Enregistrée</span></div>';
     showScreen('screen-success');
   }).catch(function(){hideOverlay();alert('Erreur de connexion. Réessayez.');});
 }

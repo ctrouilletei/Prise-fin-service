@@ -192,8 +192,8 @@ var server = http.createServer(function(req, res) {
       function createPage(sigUrl){
         var heureFmt=now.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit',timeZone:'Europe/Paris'});
         var props={'Nom':{title:[{text:{content:d.nom}}]},'Type':{select:{name:d.type}},'Horodatage':{date:{start:now.toISOString()}},'Agent':{relation:[{id:formatId(d.agentId)}]},'GPS':{rich_text:[{text:{content:d.gps||'Non disponible'}}]},'Statut vacation':{select:{name:d.type==='Début de service'?'En poste':'Terminé'}}};
-        if(d.type==='Début de service')props['Heure début']={rich_text:[{text:{content:heureFmt}}]};
-        if(d.type==='Fin de service')props['Heure fin']={rich_text:[{text:{content:heureFmt}}]};
+        if(d.type==='Début de service')props['🟢 Heure début']={rich_text:[{text:{content:heureFmt}}]};
+        if(d.type==='Fin de service')props['🔴 Heure de fin']={rich_text:[{text:{content:heureFmt}}]};
         var page={parent:{database_id:POINTAGES_DB},properties:props};
         if(d.prestationId)page.properties['Prestation']={relation:[{id:formatId(d.prestationId)}]};
         if(d.siteId)page.properties['Site']={relation:[{id:formatId(d.siteId)}]};

@@ -570,12 +570,39 @@ function showQR(pr) {
   document.getElementById('qr-url').textContent=qrUrl;
   var canvas=document.getElementById('qr-canvas');
   canvas.innerHTML='';
-  new QRCode(canvas,{text:qrUrl,width:180,height:180,colorDark:'#000',colorLight:'#fff',correctLevel:QRCode.CorrectLevel.H});
+  new QRCode(canvas,{text:qrUrl,width:300,height:300,colorDark:'#000',colorLight:'#fff',correctLevel:QRCode.CorrectLevel.H});
   document.getElementById('qr-modal').classList.add('show');
 }
 function closeQR(){document.getElementById('qr-modal').classList.remove('show');}
 function copyURL(){navigator.clipboard.writeText(currentQRUrl).then(function(){var b=document.querySelector('.btn-sec');b.textContent='✓ Copié !';setTimeout(function(){b.textContent='📋 Copier l\'URL';},2000);});}
-function printQR(){var w=window.open('','_blank');var img=document.querySelector('#qr-canvas img');if(!img){alert('QR code non généré');return;}w.document.write('<html><body style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;font-family:sans-serif;gap:14px;"><div style="font-size:20px;font-weight:bold;">'+document.getElementById('qr-site').textContent+'</div><div style="font-size:13px;color:#666;">'+document.getElementById('qr-presta').textContent+'</div><img src="'+img.src+'" style="width:240px;height:240px;"><div style="font-size:9px;color:#999;max-width:280px;text-align:center;">'+currentQRUrl+'</div></body></html>');w.document.close();w.print();}
+function printQR(){
+  var w=window.open('','_blank');
+  var img=document.querySelector('#qr-canvas img');
+  if(!img){alert('QR code non généré');return;}
+  var site=document.getElementById('qr-site').textContent;
+  var presta=document.getElementById('qr-presta').textContent;
+  w.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><style>'+
+    '@page{size:A4;margin:0;}'+
+    '*{box-sizing:border-box;margin:0;padding:0;}'+
+    'body{width:210mm;height:297mm;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:Arial,sans-serif;background:#fff;gap:24px;padding:20mm;}'+
+    '.logo{font-size:13px;font-weight:bold;letter-spacing:.2em;text-transform:uppercase;color:#888;border:1px solid #ccc;padding:5px 14px;border-radius:4px;}'+
+    '.site{font-size:32px;font-weight:bold;text-align:center;color:#111;line-height:1.2;}'+
+    '.presta{font-size:16px;color:#555;text-align:center;}'+
+    '.qr-img{width:160mm;height:160mm;display:block;}'+
+    '.url{font-size:9px;color:#aaa;text-align:center;max-width:160mm;word-break:break-all;margin-top:8px;}'+
+    '.instruction{font-size:14px;color:#333;text-align:center;padding:12px 20px;border:1px solid #ddd;border-radius:8px;max-width:160mm;}'+
+    '@media print{body{-webkit-print-color-adjust:exact;}}'+
+    '</style></head><body>'+
+    '<div class="logo">JET GUARDS</div>'+
+    '<div class="site">'+site+'</div>'+
+    '<div class="presta">'+presta+'</div>'+
+    '<img class="qr-img" src="'+img.src+'">'+
+    '<div class="instruction">📱 Scannez ce QR code avec votre téléphone pour pointer votre prise de service</div>'+
+    '<div class="url">'+currentQRUrl+'</div>'+
+    '</body></html>');
+  w.document.close();
+  w.onload=function(){w.print();};
+}
 document.getElementById('qr-modal').addEventListener('click',function(e){if(e.target===this)closeQR();});
 
 // ── DETAIL PANEL ───────────────────────────────────────────────────────────

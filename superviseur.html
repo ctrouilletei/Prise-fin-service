@@ -312,18 +312,62 @@ var APP_URL = window.location.origin;
 var D = {prestas:[], pointages:[], filter:'all', timelineFilter:'all', supervisor:null};
 var histData = [];
 var currentQRUrl = '';
+var SESSION_KEY = 'jetguards_supervisor_session';
+var SESSION_DURATION = 24 * 60 * 60 * 1000; // 24h en ms
+
+// Vérifie au chargement si une session valide existe
+function checkSession() {
+  try {
+    var raw = localStorage.getItem(SESSION_KEY);
+    if (!raw) return false;
+    var session = JSON.parse(raw);
+    if (!session.nom || !session.expires) return false;
+    if (Date.now() > session.expires) {
+      localStorage.removeItem(SESSION_KEY);
+      return false;
+    }
+    // Session valide
+    D.supervisor = session.nom;
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').classList.add('show');
+    document.getElementById('hdr-user').textContent = session.nom;
+    init();
+    return true;
+  } catch(e) { return false; }
+}
+
+function saveSession(nom) {
+  try {
+    localStorage.setItem(SESSION_KEY, JSON.stringify({
+      nom: nom,
+      expires: Date.now() + SESSION_DURATION
+    }));
+  } catch(e) {}
+}
 
 function doLogin() {
   var code=document.getElementById('login-input').value.trim();
   if(!code)return;
   document.getElementById('login-error').classList.remove('show');
   fetch('/api/superviseur/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:code})}).then(function(r){return r.json();}).then(function(data){
-    if(data.success){D.supervisor=data.nom;document.getElementById('login-screen').style.display='none';document.getElementById('app').classList.add('show');document.getElementById('hdr-user').textContent=data.nom;init();}
-    else{document.getElementById('login-error').classList.add('show');document.getElementById('login-input').value='';}
+    if(data.success){
+      D.supervisor=data.nom;
+      saveSession(data.nom);
+      document.getElementById('login-screen').style.display='none';
+      document.getElementById('app').classList.add('show');
+      document.getElementById('hdr-user').textContent=data.nom;
+      init();
+    } else{document.getElementById('login-error').classList.add('show');document.getElementById('login-input').value='';}
   }).catch(function(){document.getElementById('login-error').classList.add('show');});
 }
 document.getElementById('login-input').addEventListener('keydown',function(e){if(e.key==='Enter')doLogin();});
-function logout(){document.getElementById('login-screen').style.display='flex';document.getElementById('app').classList.remove('show');document.getElementById('login-input').value='';D.supervisor=null;}
+function logout(){
+  try { localStorage.removeItem(SESSION_KEY); } catch(e) {}
+  document.getElementById('login-screen').style.display='flex';
+  document.getElementById('app').classList.remove('show');
+  document.getElementById('login-input').value='';
+  D.supervisor=null;
+}
 
 function initClock(){function tick(){document.getElementById('hdr-clock').textContent=new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});}tick();setInterval(tick,1000);}
 
@@ -610,6 +654,9 @@ function closePanel(){document.getElementById('panel').classList.remove('open');
 function escHtml(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
 setInterval(function(){if(D.supervisor)loadToday();},60000);
+
+// Vérifie la session au chargement
+checkSession();
 </script>
 </body>
 </html>

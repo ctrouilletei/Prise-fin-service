@@ -290,10 +290,24 @@ var server = http.createServer(function(req, res) {
     var body='';req.on('data',function(c){body+=c;});req.on('end',function(){
       var d;try{d=JSON.parse(body);}catch(e){res.writeHead(400);res.end('Bad request');return;}
       var now=new Date(d.horodatage||new Date());
+
+      // Si pas de prestationId mais un siteId, cherche la prestation active du jour sur ce site
+      function findPrestaAndCreate(sigUrl){
+        if(d.prestationId||!d.siteId){createPage(sigUrl);return;}
+        var today=now.toISOString().split('T')[0];
+        notionRequest('POST','databases/'+PRESTAS_DB+'/query',{
+          filter:{and:[{property:'🏟️ Sites des missions',relation:{contains:d.siteId}},{property:'Période de prestation',date:{on_or_before:now.toISOString()}},{property:'Période de prestation',date:{on_or_after:today+'T00:00:00.000Z'}}]},page_size:5
+        }).then(function(result){
+          var prestas=(result.results||[]).filter(function(p){var dt=p.properties['Période de prestation']&&p.properties['Période de prestation'].date;if(!dt||!dt.start)return false;var s=dt.start.split('T')[0],e=dt.end?dt.end.split('T')[0]:s;return s<=today&&today<=e;});
+          if(prestas.length>0){d.prestationId=prestas[0].id;console.log('Prestation auto-détectée:',prestas[0].id);}
+          createPage(sigUrl);
+        }).catch(function(){createPage(sigUrl);});
+      }
+
       function createPage(sigUrl){
         var heureFmt=now.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit',timeZone:'Europe/Paris'});
-        // Si un site est renseigné mais pas de prestation → À vérifier (agent non affecté sur ce site)
-        var forceVerif=(!d.prestationId && d.siteId);
+        // Si un site est renseigné mais agent non affecté à la prestation → À vérifier
+        var forceVerif=(d.siteId && d.aVerifier);
         var statutVerif=d.aVerifier||forceVerif?'⚠️ À vérifier':d.verifyMethod==='CNAPS'?'✅ Vérifié CNAPS':d.verifyMethod==='DATE_NAISSANCE'?'✅ Vérifié naissance':'✅ Vérifié';
         var props={'Nom':{title:[{text:{content:d.nom}}]},'Type':{select:{name:d.type}},'Horodatage':{date:{start:now.toISOString()}},'GPS':{rich_text:[{text:{content:d.gps||'Non disponible'}}]},'Statut vacation':{select:{name:d.type==='Début de service'?'En poste':'Terminé'}},'Statut vérification':{select:{name:statutVerif}}};
         if(d.agentId)props['Agent']={relation:[{id:formatId(d.agentId)}]};
@@ -309,8 +323,8 @@ var server = http.createServer(function(req, res) {
           else{res.writeHead(200,{'Content-Type':'application/json'});res.end(JSON.stringify({success:true}));}
         }).catch(function(e){res.writeHead(500,{'Content-Type':'application/json'});res.end(JSON.stringify({success:false,error:e.message}));});
       }
-      if(d.signature&&CLOUDINARY_CLOUD_NAME){uploadToCloudinary(d.signature).then(function(u){createPage(u);}).catch(function(e){console.error('Cloudinary:',e.message);createPage(null);});}
-      else{createPage(null);}
+      if(d.signature&&CLOUDINARY_CLOUD_NAME){uploadToCloudinary(d.signature).then(function(u){findPrestaAndCreate(u);}).catch(function(e){console.error('Cloudinary:',e.message);findPrestaAndCreate(null);});}
+      else{findPrestaAndCreate(null);}
     });
     return;
   }

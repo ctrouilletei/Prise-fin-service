@@ -66,6 +66,21 @@ function distMetres(lat1,lng1,lat2,lng2){var R=6371000,dLat=(lat2-lat1)*Math.PI/
 // ── Parse GPS string ─────────────────────────────────────────────────────────
 function parseGPS(str){if(!str||str==='Non disponible')return null;var m=str.match(/([-\d.]+),\s*([-\d.]+)/);if(!m)return null;return{lat:parseFloat(m[1]),lng:parseFloat(m[2])};}
 
+function levenshtein(a, b) {
+  if (a.length === 0) return b.length;
+  if (b.length === 0) return a.length;
+  var matrix = [];
+  for (var i = 0; i <= b.length; i++) matrix[i] = [i];
+  for (var j = 0; j <= a.length; j++) matrix[0][j] = j;
+  for (i = 1; i <= b.length; i++) {
+    for (j = 1; j <= a.length; j++) {
+      if (b.charAt(i - 1) === a.charAt(j - 1)) matrix[i][j] = matrix[i - 1][j - 1];
+      else matrix[i][j] = Math.min(matrix[i - 1][j - 1] + 1, matrix[i][j - 1] + 1, matrix[i - 1][j] + 1);
+    }
+  }
+  return matrix[b.length][a.length];
+}
+
 var server = http.createServer(function(req, res) {
   var parsed=url.parse(req.url),pathname=parsed.pathname;
   res.setHeader('Access-Control-Allow-Origin','*');
@@ -97,11 +112,10 @@ var server = http.createServer(function(req, res) {
     var p5=new URLSearchParams(parsed.query||''),nomRecherche=p5.get('nom')||'';
     var norm=function(s){return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().replace(/\s+/g,' ');};
     var normNom=norm(nomRecherche);
-    // Génère aussi la version inversée (premier mot ↔ reste)
-    var parts=normNom.split(' ');
-    var normInverse=parts.length>=2?parts.slice(1).concat(parts[0]).join(' '):normNom;
-    // Cherche dans toute la base agents
-    var allA=[];
+    var partsNom=normNom.split(' ');
+    var normInverse=partsNom.length>=2?partsNom.slice(1).concat(partsNom[0]).join(' '):normNom;
+    var allAgents=[];
+    var exactMatches=[];
     function searchPage(cur){
       var body={page_size:100};if(cur)body.start_cursor=cur;
       notionRequest('POST','databases/'+AGENTS_DB+'/query',body).then(function(result){
@@ -111,11 +125,33 @@ var server = http.createServer(function(req, res) {
           var dn=p.properties['Date de naissance']&&p.properties['Date de naissance'].date?p.properties['Date de naissance'].date.start:'';
           if(nom){
             var n=norm(nom);
-            if(n===normNom||n===normInverse)allA.push({id:p.id,nom:nom,cartePro:cp,dateNaissance:dn});
+            var agentObj={id:p.id,nom:nom,cartePro:cp,dateNaissance:dn};
+            if(n===normNom||n===normInverse)exactMatches.push(agentObj);
+            allAgents.push({normNom:n,obj:agentObj});
           }
         });
         if(result.has_more&&result.next_cursor){searchPage(result.next_cursor);}
-        else{res.writeHead(200,{'Content-Type':'application/json'});res.end(JSON.stringify({agents:allA}));}
+        else{
+          // Si match exact trouvé, retourne ces résultats
+          if(exactMatches.length>0){
+            res.writeHead(200,{'Content-Type':'application/json'});
+            res.end(JSON.stringify({agents:exactMatches}));
+            return;
+          }
+          // Sinon recherche tolérante (max 2 fautes)
+          var fuzzyMatches=[];
+          allAgents.forEach(function(a){
+            var d1=levenshtein(a.normNom,normNom);
+            var d2=levenshtein(a.normNom,normInverse);
+            var minDist=Math.min(d1,d2);
+            if(minDist<=2)fuzzyMatches.push({agent:a.obj,dist:minDist});
+          });
+          fuzzyMatches.sort(function(a,b){return a.dist-b.dist;});
+          var best=fuzzyMatches.length>0?fuzzyMatches[0].dist:99;
+          var topMatches=fuzzyMatches.filter(function(c){return c.dist===best;}).map(function(c){return c.agent;});
+          res.writeHead(200,{'Content-Type':'application/json'});
+          res.end(JSON.stringify({agents:topMatches}));
+        }
       }).catch(function(e){res.writeHead(500,{'Content-Type':'application/json'});res.end(JSON.stringify({error:e.message,agents:[]}));});
     }
     searchPage(null);

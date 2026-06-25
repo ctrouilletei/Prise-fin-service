@@ -229,6 +229,44 @@ var MAX_VERIFY = 3;
 function api(method,path,body){return fetch(path,{method:method,headers:{'Content-Type':'application/json'},body:body?JSON.stringify(body):undefined}).then(function(r){return r.json();});}
 function distanceMetres(lat1,lng1,lat2,lng2){var R=6371000,dLat=(lat2-lat1)*Math.PI/180,dLng=(lng2-lng1)*Math.PI/180,a=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)*Math.sin(dLng/2);return Math.round(R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a)));}
 
+// Distance de Levenshtein (nombre de modifications entre deux chaînes)
+function levenshtein(a, b) {
+  if (a.length === 0) return b.length;
+  if (b.length === 0) return a.length;
+  var matrix = [];
+  for (var i = 0; i <= b.length; i++) matrix[i] = [i];
+  for (var j = 0; j <= a.length; j++) matrix[0][j] = j;
+  for (i = 1; i <= b.length; i++) {
+    for (j = 1; j <= a.length; j++) {
+      if (b.charAt(i - 1) === a.charAt(j - 1)) {
+        matrix[i][j] = matrix[i - 1][j - 1];
+      } else {
+        matrix[i][j] = Math.min(matrix[i - 1][j - 1] + 1, matrix[i][j - 1] + 1, matrix[i - 1][j] + 1);
+      }
+    }
+  }
+  return matrix[b.length][a.length];
+}
+
+// Recherche tolérante : trouve le ou les agents avec max 2 caractères de différence
+function fuzzySearch(normNom, normInverse, agents) {
+  var norm = function(s){return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().replace(/\s+/g,' ');};
+  var MAX_DIST = 2;
+  var candidates = [];
+  agents.forEach(function(a) {
+    var n = norm(a.nom);
+    var d1 = levenshtein(n, normNom);
+    var d2 = levenshtein(n, normInverse);
+    var minDist = Math.min(d1, d2);
+    if (minDist <= MAX_DIST) candidates.push({agent: a, dist: minDist});
+  });
+  candidates.sort(function(a, b) { return a.dist - b.dist; });
+  // Retourne tous les candidats avec la meilleure distance
+  if (candidates.length === 0) return [];
+  var best = candidates[0].dist;
+  return candidates.filter(function(c) { return c.dist === best; }).map(function(c) { return c.agent; });
+}
+
 window.addEventListener('DOMContentLoaded',function(){
   initClock(); initGeo();
   var p=new URLSearchParams(window.location.search);
@@ -295,6 +333,11 @@ function searchAgent(){
   var parts=normNom.split(' ');
   var normInverse=parts.length>=2?parts.slice(1).concat(parts[0]).join(' '):normNom;
   var matches=S.siteAgents.filter(function(a){var n=norm(a.nom);return n===normNom||n===normInverse;});
+
+  // Si pas de match exact, essaie la recherche tolérante (max 2 fautes de frappe)
+  if(matches.length===0&&S.siteAgents.length>0){
+    matches=fuzzySearch(normNom, normInverse, S.siteAgents);
+  }
 
   // Si pas de résultat avec les agents du site, cherche dans toute la base
   if(matches.length===0&&S.siteId){

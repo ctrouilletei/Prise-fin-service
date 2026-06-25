@@ -292,7 +292,9 @@ var server = http.createServer(function(req, res) {
       var now=new Date(d.horodatage||new Date());
       function createPage(sigUrl){
         var heureFmt=now.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit',timeZone:'Europe/Paris'});
-        var statutVerif=d.aVerifier?'⚠️ À vérifier':d.verifyMethod==='CNAPS'?'✅ Vérifié CNAPS':d.verifyMethod==='DATE_NAISSANCE'?'✅ Vérifié naissance':'✅ Vérifié';
+        // Si un site est renseigné mais pas de prestation → À vérifier (agent non affecté sur ce site)
+        var forceVerif=(!d.prestationId && d.siteId);
+        var statutVerif=d.aVerifier||forceVerif?'⚠️ À vérifier':d.verifyMethod==='CNAPS'?'✅ Vérifié CNAPS':d.verifyMethod==='DATE_NAISSANCE'?'✅ Vérifié naissance':'✅ Vérifié';
         var props={'Nom':{title:[{text:{content:d.nom}}]},'Type':{select:{name:d.type}},'Horodatage':{date:{start:now.toISOString()}},'GPS':{rich_text:[{text:{content:d.gps||'Non disponible'}}]},'Statut vacation':{select:{name:d.type==='Début de service'?'En poste':'Terminé'}},'Statut vérification':{select:{name:statutVerif}}};
         if(d.agentId)props['Agent']={relation:[{id:formatId(d.agentId)}]};
         if(d.nomSaisi)props['Nom saisi']={rich_text:[{text:{content:d.nomSaisi}}]};

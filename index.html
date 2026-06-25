@@ -382,9 +382,8 @@ function showVerify(agent, horsPrestation){
     document.getElementById('presta-sub').textContent=S.siteName||'';
     document.getElementById('presta-field').style.display='flex';
   }
-  if(horsPrestation){
-    showErr('check-alert','⚠ Vous n\'êtes pas affecté à une prestation active sur ce site. Votre pointage sera vérifié par votre coordinateur.');
-  }
+  // Note: si l'agent n'est pas affecté à la prestation, on ne lui dit rien.
+  // Le superviseur verra le pointage dans l'onglet "À vérifier" du dashboard.
   // Affiche le champ de vérification
   document.getElementById('verify-field').style.display='flex';
   document.getElementById('dob-input').value='';

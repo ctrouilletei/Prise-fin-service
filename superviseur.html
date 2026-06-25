@@ -260,7 +260,8 @@ tr:hover td{background:var(--dark2);}
     <!-- À VÉRIFIER -->
     <div class="tab-content" id="tab-verif">
       <div class="alerts-banner show">
-        <div class="alert-item">ℹ️ Ces pointages ont été créés avec un nom non reconnu. Liez-les manuellement dans Notion en ouvrant la fiche du pointage et en sélectionnant l'agent correspondant dans le champ "Agent".</div>
+        <div class="alert-item">ℹ️ <strong>À vérifier</strong> : nom non reconnu dans la base — liez manuellement l'agent dans Notion.</div>
+        <div class="alert-item">ℹ️ <strong>Non affecté</strong> : agent reconnu mais pas dans la liste des affectés à la prestation du site.</div>
       </div>
       <div id="verif-container"><div class="loading"><div class="spinner"></div>Chargement...</div></div>
     </div>
@@ -402,7 +403,7 @@ function getPointes(prestaId){var ids=new Set();D.pointages.forEach(function(p){
 function updateStats(){
   var totalA=0,totalP=0;
   D.prestas.forEach(function(pr){totalA+=pr.agents.length;totalP+=getPointes(pr.id);});
-  var verifCount=D.pointages.filter(function(p){return p.statutVerif&&p.statutVerif.indexOf('À vérifier')>-1;}).length;
+  var verifCount=D.pointages.filter(function(p){return p.statutVerif&&(p.statutVerif.indexOf('À vérifier')>-1||p.statutVerif.indexOf('Non affecté')>-1);}).length;
   document.getElementById('s-prestas').textContent=D.prestas.length;
   document.getElementById('s-pointes').textContent=D.pointages.filter(function(p){return p.type==='Début de service';}).length;
   document.getElementById('s-manquants').textContent=Math.max(0,totalA-totalP);
@@ -488,16 +489,18 @@ function renderTimeline(){
     if(q&&p.agentNom.toLowerCase().indexOf(q)===-1)return false;
     if(D.timelineFilter==='debut'&&p.type!=='Début de service')return false;
     if(D.timelineFilter==='fin'&&p.type!=='Fin de service')return false;
-    if(D.timelineFilter==='verif'&&(!p.statutVerif||p.statutVerif.indexOf('À vérifier')===-1))return false;
+    if(D.timelineFilter==='verif'&&(!p.statutVerif||(p.statutVerif.indexOf('À vérifier')===-1&&p.statutVerif.indexOf('Non affecté')===-1)))return false;
     return true;
   });
   if(!pts.length){document.getElementById('timeline-container').innerHTML='<div class="empty">Aucun pointage aujourd\'hui</div>';return;}
   var html='<div class="timeline-wrap"><div class="timeline-list">';
   pts.forEach(function(p){
     var h=new Date(p.horodatage).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
-    var isVerif=p.statutVerif&&p.statutVerif.indexOf('À vérifier')>-1;
+    var isVerif=p.statutVerif&&(p.statutVerif.indexOf('À vérifier')>-1||p.statutVerif.indexOf('Non affecté')>-1);
     var typeBadge=p.type==='Début de service'?'<span class="badge debut">🟢 Début</span>':'<span class="badge fin">🔴 Fin</span>';
-    var verifBadge=isVerif?'<span class="badge alert">⚠ À vérifier</span>':'';
+    var verifBadge='';
+    if(p.statutVerif&&p.statutVerif.indexOf('Non affecté')>-1)verifBadge='<span class="badge" style="background:rgba(232,131,58,.15);color:#E8833A;border:1px solid rgba(232,131,58,.3);">⚠ Non affecté</span>';
+    else if(p.statutVerif&&p.statutVerif.indexOf('À vérifier')>-1)verifBadge='<span class="badge alert">⚠ À vérifier</span>';
     html+='<div class="timeline-item'+(isVerif?' verif':'')+'">';
     html+='<div class="timeline-time">'+h+'</div>';
     html+='<div class="timeline-info"><div class="timeline-agent">'+escHtml(p.agentNom||p.nomSaisi||'?')+'</div>';
@@ -516,15 +519,17 @@ function renderTimeline(){
 
 // ── À VÉRIFIER ─────────────────────────────────────────────────────────────
 function renderVerif(){
-  var pts=D.pointages.filter(function(p){return p.statutVerif&&p.statutVerif.indexOf('À vérifier')>-1;});
+  var pts=D.pointages.filter(function(p){return p.statutVerif&&(p.statutVerif.indexOf('À vérifier')>-1||p.statutVerif.indexOf('Non affecté')>-1);});
   pts.sort(function(a,b){return new Date(b.horodatage)-new Date(a.horodatage);});
   if(!pts.length){document.getElementById('verif-container').innerHTML='<div class="empty">✓ Aucun pointage à vérifier</div>';return;}
-  var html='<div class="table-wrap"><table><thead><tr><th>Heure</th><th>Nom saisi</th><th>Type</th><th>Site</th><th>GPS</th><th>Action</th></tr></thead><tbody>';
+  var html='<div class="table-wrap"><table><thead><tr><th>Heure</th><th>Agent</th><th>Nom saisi</th><th>Type</th><th>Site</th><th>Statut</th><th>Action</th></tr></thead><tbody>';
   pts.forEach(function(p){
     var h=new Date(p.horodatage).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
     var typeBadge=p.type==='Début de service'?'<span class="badge debut">Début</span>':'<span class="badge fin">Fin</span>';
-    html+='<tr><td class="td-mono">'+h+'</td><td><strong>'+escHtml(p.nomSaisi||p.agentNom||'?')+'</strong></td><td>'+typeBadge+'</td><td class="td-mono">'+escHtml(p.siteName||'—')+'</td><td class="td-mono">'+escHtml((p.gps||'').substring(0,40))+'</td>';
-    html+='<td>'+(p.notionUrl?'<a href="'+p.notionUrl+'" target="_blank" class="btn-link">Ouvrir dans Notion →</a>':'—')+'</td></tr>';
+    var isNonAffecte=p.statutVerif&&p.statutVerif.indexOf('Non affecté')>-1;
+    var statutBadge=isNonAffecte?'<span class="badge" style="background:rgba(232,131,58,.15);color:#E8833A;border:1px solid rgba(232,131,58,.3);">Non affecté</span>':'<span class="badge alert">À vérifier</span>';
+    html+='<tr><td class="td-mono">'+h+'</td><td>'+escHtml(p.agentNom||'—')+'</td><td><strong>'+escHtml(p.nomSaisi||'—')+'</strong></td><td>'+typeBadge+'</td><td class="td-mono">'+escHtml(p.siteName||'—')+'</td><td>'+statutBadge+'</td>';
+    html+='<td>'+(p.notionUrl?'<a href="'+p.notionUrl+'" target="_blank" class="btn-link">Notion →</a>':'—')+'</td></tr>';
   });
   html+='</tbody></table></div>';
   document.getElementById('verif-container').innerHTML=html;
@@ -548,7 +553,9 @@ function renderHistory(){
     var date=dt.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'});
     var heure=dt.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
     var typeBadge=p.type==='Début de service'?'<span class="badge debut">Début</span>':'<span class="badge fin">Fin</span>';
-    var verifBadge=p.statutVerif&&p.statutVerif.indexOf('À vérifier')>-1?'<span class="badge alert">⚠ À vérifier</span>':'<span class="badge ok">✓</span>';
+    var verifBadge='<span class="badge ok">✓</span>';
+    if(p.statutVerif&&p.statutVerif.indexOf('Non affecté')>-1)verifBadge='<span class="badge" style="background:rgba(232,131,58,.15);color:#E8833A;border:1px solid rgba(232,131,58,.3);">Non affecté</span>';
+    else if(p.statutVerif&&p.statutVerif.indexOf('À vérifier')>-1)verifBadge='<span class="badge alert">À vérifier</span>';
     html+='<tr><td>'+escHtml(p.agentNom||p.nomSaisi||'?')+'</td><td>'+typeBadge+'</td><td class="td-mono">'+date+'</td><td class="td-mono">'+heure+'</td><td class="td-mono">'+escHtml(p.siteName||'—')+'</td><td>'+verifBadge+'</td></tr>';
   });
   html+='</tbody></table></div>';

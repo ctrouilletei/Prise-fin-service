@@ -414,10 +414,10 @@ function updateStats(){
 
 function getNonAffectes(prestaId, siteId){
   // Pointages dont le siteId correspond mais sans prestationId, ou prestationId différent
+  // (Inclut début ET fin de service)
   return D.pointages.filter(function(p){
     if(p.siteId!==siteId)return false;
     if(p.prestationId===prestaId)return false;
-    if(p.type!=='Début de service')return false;
     return true;
   });
 }

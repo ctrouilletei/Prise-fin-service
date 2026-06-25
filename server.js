@@ -95,8 +95,11 @@ var server = http.createServer(function(req, res) {
   // ── GET /api/agent/search?nom=NOM ────────────────────────────────────────
   if(req.method==='GET'&&pathname==='/api/agent/search'){
     var p5=new URLSearchParams(parsed.query||''),nomRecherche=p5.get('nom')||'';
-    var norm=function(s){return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();};
+    var norm=function(s){return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().replace(/\s+/g,' ');};
     var normNom=norm(nomRecherche);
+    // Génère aussi la version inversée (premier mot ↔ reste)
+    var parts=normNom.split(' ');
+    var normInverse=parts.length>=2?parts.slice(1).concat(parts[0]).join(' '):normNom;
     // Cherche dans toute la base agents
     var allA=[];
     function searchPage(cur){
@@ -106,7 +109,10 @@ var server = http.createServer(function(req, res) {
           var nom=p.properties['Nom']&&p.properties['Nom'].title&&p.properties['Nom'].title[0]?p.properties['Nom'].title[0].plain_text:'';
           var cp=p.properties['Carte Pro']&&p.properties['Carte Pro'].rich_text&&p.properties['Carte Pro'].rich_text[0]?p.properties['Carte Pro'].rich_text[0].plain_text:'';
           var dn=p.properties['Date de naissance']&&p.properties['Date de naissance'].date?p.properties['Date de naissance'].date.start:'';
-          if(nom&&norm(nom)===normNom)allA.push({id:p.id,nom:nom,cartePro:cp,dateNaissance:dn});
+          if(nom){
+            var n=norm(nom);
+            if(n===normNom||n===normInverse)allA.push({id:p.id,nom:nom,cartePro:cp,dateNaissance:dn});
+          }
         });
         if(result.has_more&&result.next_cursor){searchPage(result.next_cursor);}
         else{res.writeHead(200,{'Content-Type':'application/json'});res.end(JSON.stringify({agents:allA}));}

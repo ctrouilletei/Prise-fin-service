@@ -306,6 +306,8 @@ function selectType(t){
   S.type=t;
   document.getElementById('card-debut').classList.toggle('selected',t==='debut');
   document.getElementById('card-fin').classList.toggle('selected',t==='fin');
+  // Met à jour le texte du bouton
+  document.getElementById('btn-submit').textContent=t==='debut'?'✓ Valider ma prise de service':'✓ Valider ma fin de service';
 }
 
 // Charge les agents du site en arrière-plan (pour la recherche)

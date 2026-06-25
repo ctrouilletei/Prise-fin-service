@@ -178,6 +178,85 @@ tr:hover td{background:var(--dark2);}
 .p-meta{font-family:'DM Mono',monospace;font-size:10px;color:var(--gray);margin-top:4px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
 .p-missing{opacity:.45;}
 .section-label{font-family:'DM Mono',monospace;font-size:10px;color:var(--gray);text-transform:uppercase;letter-spacing:.1em;margin:14px 0 6px;}
+
+/* RESPONSIVE MOBILE / TABLET */
+@media(max-width:768px){
+  .header{padding:12px 16px;flex-wrap:wrap;gap:10px;}
+  .header-left{gap:10px;}
+  .brand-logo{font-size:9px;padding:3px 8px;}
+  .brand-title{font-size:14px;}
+  .header-right{gap:10px;font-size:11px;}
+  .header-clock{font-size:12px;}
+  .btn-logout{font-size:10px;padding:4px 8px;}
+
+  .stats-bar{grid-template-columns:repeat(3,1fr);}
+  .stat{padding:10px 14px;}
+  .stat-val{font-size:20px;}
+  .stat-label{font-size:8px;}
+
+  .tabs{padding:0 12px;overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  .tab{padding:10px 12px;font-size:10px;white-space:nowrap;}
+
+  .main{padding:14px 12px;gap:12px;}
+
+  .toolbar{gap:6px;}
+  .filter-btn{font-size:9px;padding:5px 8px;}
+  .search-inp{width:140px;font-size:12px;padding:6px 10px;}
+  .date-inp{font-size:11px;padding:6px 8px;}
+  .icon-btn{width:28px;height:28px;font-size:14px;}
+
+  .grid{grid-template-columns:1fr;}
+  .card-head{padding:10px 12px;}
+  .card-site{font-size:12px;}
+  .card-body{padding:10px 12px;}
+  .card-foot{padding:8px 12px;}
+
+  .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  table{min-width:600px;}
+  th,td{padding:8px 10px;font-size:12px;}
+
+  .panel{width:100%;left:0;right:0;}
+  .panel-hdr{margin-bottom:14px;}
+
+  .modal{padding:20px;max-width:95%;width:95%;}
+  .qr-wrap{padding:14px;}
+  .url-box{font-size:9px;}
+
+  .upcoming-grid{grid-template-columns:1fr;}
+
+  .timeline-item{grid-template-columns:60px 1fr auto;gap:10px;padding:9px 12px;}
+  .timeline-time{font-size:13px;}
+  .timeline-agent{font-size:12px;}
+  .timeline-meta{font-size:9px;}
+}
+
+@media(max-width:480px){
+  .stats-bar{grid-template-columns:repeat(2,1fr);}
+  .stat:nth-child(5){grid-column:span 2;}
+
+  .header-right{flex-wrap:wrap;}
+  .header-user{display:none;}
+
+  .toolbar{gap:8px;}
+  .toolbar .spacer{display:none;}
+  .search-inp{width:100%;order:10;}
+  .icon-btn{order:11;}
+  .filter-btn{font-size:9px;padding:5px 7px;flex-shrink:0;}
+
+  .modal-btns{grid-template-columns:1fr;}
+
+  .card-foot{flex-direction:column;}
+  .btn-qr,.btn-detail{width:100%;text-align:center;}
+
+  .login-box{padding:24px 20px;width:92%;}
+}
+
+@media(min-width:769px)and(max-width:1024px){
+  .stats-bar{grid-template-columns:repeat(5,1fr);}
+  .grid{grid-template-columns:repeat(2,1fr);}
+  .panel{width:340px;}
+  .main{padding:16px 20px;}
+}
 </style>
 </head>
 <body>
@@ -635,27 +714,18 @@ function showDetail(pr){
   var agentIds=pr.agents.map(function(a){return a.id;});
   var html='';
 
-  // Section 1 : Pointages des agents AFFECTÉS
-  var ptsAffectes=allPts.filter(function(p){return agentIds.indexOf(p.agentId)>-1;});
-  if(ptsAffectes.length){
-    html+='<div class="section-label" style="color:#5DCAA5;">✅ Agents affectés pointés ('+ptsAffectes.length+')</div>';
-    ptsAffectes.sort(function(a,b){return new Date(a.horodatage)-new Date(b.horodatage);});
-    ptsAffectes.forEach(function(p){
+  // Section 1 : Pointages à vérifier / orphelins (URGENT)
+  var ptsOrphans=allPts.filter(function(p){return agentIds.indexOf(p.agentId)===-1&&nonAffectes.indexOf(p)===-1;});
+  if(ptsOrphans.length){
+    html+='<div class="section-label" style="color:#F09595;">❓ Pointages à vérifier ('+ptsOrphans.length+')</div>';
+    ptsOrphans.forEach(function(p){
       var h=new Date(p.horodatage).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
       var tb=p.type==='Début de service'?'<span class="badge debut" style="font-size:9px;">Début</span>':'<span class="badge fin" style="font-size:9px;">Fin</span>';
-      html+='<div class="p-item" style="border-color:rgba(29,158,117,.2);"><div style="display:flex;justify-content:space-between;align-items:center;"><div class="p-agent">'+escHtml(p.agentNom)+'</div>'+tb+'</div><div class="p-meta"><span>🕐 '+h+'</span><span style="color:#5DCAA5;">✅ Affecté</span></div></div>';
+      html+='<div class="p-item" style="border-color:rgba(226,75,74,.3);background:rgba(226,75,74,.06);"><div style="display:flex;justify-content:space-between;align-items:center;"><div class="p-agent">'+escHtml(p.agentNom||p.nomSaisi||'?')+'</div>'+tb+'</div><div class="p-meta"><span>🕐 '+h+'</span></div></div>';
     });
   }
 
-  // Section 2 : Agents affectés NON POINTÉS
-  var pointedIds=new Set(ptsAffectes.filter(function(p){return p.type==='Début de service';}).map(function(p){return p.agentId;}));
-  var missing=pr.agents.filter(function(a){return !pointedIds.has(a.id);});
-  if(missing.length){
-    html+='<div class="section-label">⏳ Agents affectés non pointés ('+missing.length+')</div>';
-    missing.forEach(function(a){html+='<div class="p-item p-missing"><div class="p-agent">'+escHtml(a.nom)+'</div><div class="p-meta"><span>En attente de pointage</span></div></div>';});
-  }
-
-  // Section 3 : Agents NON AFFECTÉS qui ont pointé
+  // Section 2 : Agents NON AFFECTÉS qui ont pointé
   if(nonAffectes.length){
     html+='<div class="section-label" style="color:#E8833A;">⚠ Agents non affectés ayant pointé ('+nonAffectes.length+')</div>';
     html+='<div style="font-family:DM Mono,monospace;font-size:10px;color:var(--gray);margin-bottom:6px;font-style:italic;">Ces agents ont pointé sur ce site mais ne figurent pas dans la liste des affectés.</div>';
@@ -671,15 +741,24 @@ function showDetail(pr){
     });
   }
 
-  // Section 4 : Pointages d'agents affectés mais sans prestationId dans le pointage (bug potentiel)
-  var ptsOrphans=allPts.filter(function(p){return agentIds.indexOf(p.agentId)===-1&&nonAffectes.indexOf(p)===-1;});
-  if(ptsOrphans.length){
-    html+='<div class="section-label" style="color:#F09595;">❓ Pointages à vérifier ('+ptsOrphans.length+')</div>';
-    ptsOrphans.forEach(function(p){
+  // Section 3 : Pointages des agents AFFECTÉS
+  var ptsAffectes=allPts.filter(function(p){return agentIds.indexOf(p.agentId)>-1;});
+  if(ptsAffectes.length){
+    html+='<div class="section-label" style="color:#5DCAA5;">✅ Agents affectés pointés ('+ptsAffectes.length+')</div>';
+    ptsAffectes.sort(function(a,b){return new Date(a.horodatage)-new Date(b.horodatage);});
+    ptsAffectes.forEach(function(p){
       var h=new Date(p.horodatage).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
       var tb=p.type==='Début de service'?'<span class="badge debut" style="font-size:9px;">Début</span>':'<span class="badge fin" style="font-size:9px;">Fin</span>';
-      html+='<div class="p-item" style="border-color:rgba(226,75,74,.3);background:rgba(226,75,74,.06);"><div style="display:flex;justify-content:space-between;align-items:center;"><div class="p-agent">'+escHtml(p.agentNom||p.nomSaisi||'?')+'</div>'+tb+'</div><div class="p-meta"><span>🕐 '+h+'</span></div></div>';
+      html+='<div class="p-item" style="border-color:rgba(29,158,117,.2);"><div style="display:flex;justify-content:space-between;align-items:center;"><div class="p-agent">'+escHtml(p.agentNom)+'</div>'+tb+'</div><div class="p-meta"><span>🕐 '+h+'</span><span style="color:#5DCAA5;">✅ Affecté</span></div></div>';
     });
+  }
+
+  // Section 4 : Agents affectés NON POINTÉS
+  var pointedIds=new Set(ptsAffectes.filter(function(p){return p.type==='Début de service';}).map(function(p){return p.agentId;}));
+  var missing=pr.agents.filter(function(a){return !pointedIds.has(a.id);});
+  if(missing.length){
+    html+='<div class="section-label">⏳ Agents affectés non pointés ('+missing.length+')</div>';
+    missing.forEach(function(a){html+='<div class="p-item p-missing"><div class="p-agent">'+escHtml(a.nom)+'</div><div class="p-meta"><span>En attente de pointage</span></div></div>';});
   }
 
   if(!html)html='<div class="empty">Aucun pointage</div>';

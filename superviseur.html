@@ -39,7 +39,7 @@ html,body{min-height:100vh;background:var(--black);font-family:'Syne',sans-serif
 .btn-logout{background:none;border:1px solid var(--dark3);border-radius:var(--radius-sm);color:var(--gray);font-family:'DM Mono',monospace;font-size:11px;padding:5px 10px;cursor:pointer;transition:all .15s;}
 .btn-logout:hover{border-color:var(--red);color:var(--red);}
 
-.tabs{display:flex;gap:0;border-bottom:1px solid var(--dark3);padding:0 28px;background:var(--dark);overflow-x:auto;}
+.tabs{display:none;}
 .tab{padding:12px 18px;font-family:'DM Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--gray);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap;}
 .tab:hover{color:var(--white);}
 .tab.active{color:var(--gold);border-bottom-color:var(--gold);}
@@ -179,8 +179,18 @@ tr:hover td{background:var(--dark2);}
 .p-missing{opacity:.45;}
 .section-label{font-family:'DM Mono',monospace;font-size:10px;color:var(--gray);text-transform:uppercase;letter-spacing:.1em;margin:14px 0 6px;}
 
+/* NAV BUTTONS - inline, no position:fixed */
+.nav-btns{display:flex;gap:2px;padding:2px;background:var(--dark3);overflow-x:auto;-webkit-overflow-scrolling:touch;}
+.nav-btn{flex:1;min-width:0;background:var(--dark2);border:none;color:var(--gray);font-family:'DM Mono',monospace;font-size:11px;padding:14px 8px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;transition:all .15s;position:relative;-webkit-tap-highlight-color:transparent;}
+.nav-btn.active{background:var(--dark);color:var(--gold);}
+.nav-btn:hover{color:var(--white);}
+.nav-btn-icon{font-size:20px;line-height:1;}
+.nav-btn-label{font-size:9px;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;}
+.nav-btn-badge{position:absolute;top:6px;right:calc(50% - 18px);background:var(--red);color:#fff;border-radius:8px;padding:1px 5px;font-family:'DM Mono',monospace;font-size:9px;font-weight:bold;min-width:16px;text-align:center;line-height:16px;}
+
 /* RESPONSIVE MOBILE / TABLET */
-@media(max-width:768px){
+@media(max-width:1024px){
+
   .header{padding:12px 16px;flex-wrap:wrap;gap:10px;}
   .header-left{gap:10px;}
   .brand-logo{font-size:9px;padding:3px 8px;}
@@ -194,12 +204,11 @@ tr:hover td{background:var(--dark2);}
   .stat-val{font-size:20px;}
   .stat-label{font-size:8px;}
 
-  .tabs{padding:0 12px;overflow-x:auto;-webkit-overflow-scrolling:touch;}
-  .tab{padding:10px 12px;font-size:10px;white-space:nowrap;}
+  /* nav buttons already visible in page flow */
 
   .main{padding:14px 12px;gap:12px;}
 
-  .toolbar{gap:6px;}
+  .toolbar{gap:6px;flex-wrap:wrap;}
   .filter-btn{font-size:9px;padding:5px 8px;}
   .search-inp{width:140px;font-size:12px;padding:6px 10px;}
   .date-inp{font-size:11px;padding:6px 8px;}
@@ -210,6 +219,8 @@ tr:hover td{background:var(--dark2);}
   .card-site{font-size:12px;}
   .card-body{padding:10px 12px;}
   .card-foot{padding:8px 12px;}
+  .btn-qr{font-size:11px;padding:9px 6px;}
+  .btn-detail{font-size:10px;padding:9px 10px;}
 
   .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
   table{min-width:600px;}
@@ -217,6 +228,8 @@ tr:hover td{background:var(--dark2);}
 
   .panel{width:100%;left:0;right:0;}
   .panel-hdr{margin-bottom:14px;}
+  .p-item{padding:10px;}
+  .p-agent{font-size:12px;}
 
   .modal{padding:20px;max-width:95%;width:95%;}
   .qr-wrap{padding:14px;}
@@ -228,20 +241,25 @@ tr:hover td{background:var(--dark2);}
   .timeline-time{font-size:13px;}
   .timeline-agent{font-size:12px;}
   .timeline-meta{font-size:9px;}
+
+  .alerts-banner{font-size:11px;padding:10px 12px;}
+  .alert-item{font-size:11px;}
 }
 
 @media(max-width:480px){
   .stats-bar{grid-template-columns:repeat(2,1fr);}
   .stat:nth-child(5){grid-column:span 2;}
 
+  .header{padding:10px 12px;}
   .header-right{flex-wrap:wrap;}
   .header-user{display:none;}
+  .brand-title{font-size:13px;}
 
-  .toolbar{gap:8px;}
+  .toolbar{gap:6px;}
   .toolbar .spacer{display:none;}
   .search-inp{width:100%;order:10;}
   .icon-btn{order:11;}
-  .filter-btn{font-size:9px;padding:5px 7px;flex-shrink:0;}
+  .filter-btn{font-size:8px;padding:4px 6px;flex-shrink:0;}
 
   .modal-btns{grid-template-columns:1fr;}
 
@@ -249,13 +267,19 @@ tr:hover td{background:var(--dark2);}
   .btn-qr,.btn-detail{width:100%;text-align:center;}
 
   .login-box{padding:24px 20px;width:92%;}
+  .login-title{font-size:19px;}
+
+  .timeline-item{grid-template-columns:50px 1fr;gap:8px;padding:8px 10px;}
+  .timeline-actions{display:none;}
+  .timeline-time{font-size:12px;}
+
+  .section-label{font-size:9px;}
 }
 
-@media(min-width:769px)and(max-width:1024px){
+@media(min-width:1025px){
   .stats-bar{grid-template-columns:repeat(5,1fr);}
-  .grid{grid-template-columns:repeat(2,1fr);}
-  .panel{width:340px;}
-  .main{padding:16px 20px;}
+  .grid{grid-template-columns:repeat(auto-fill,minmax(360px,1fr));}
+  .panel{width:400px;}
 }
 </style>
 </head>
@@ -304,6 +328,15 @@ tr:hover td{background:var(--dark2);}
     <div class="tab" onclick="switchTab('verif',this)">⚠️ À vérifier<span class="tab-badge" id="tab-verif-badge" style="display:none">0</span></div>
     <div class="tab" onclick="switchTab('history',this)">Historique 30j</div>
     <div class="tab" onclick="switchTab('upcoming',this)">Missions à venir</div>
+  </div>
+
+  <!-- NAVIGATION - boutons inline -->
+  <div class="nav-btns" id="nav-btns">
+    <button class="nav-btn active" onclick="switchTab2('today',this)"><span class="nav-btn-icon">📋</span><span class="nav-btn-label">Prestas</span></button>
+    <button class="nav-btn" onclick="switchTab2('timeline',this)"><span class="nav-btn-icon">⏱</span><span class="nav-btn-label">Timeline</span></button>
+    <button class="nav-btn" onclick="switchTab2('verif',this)"><span class="nav-btn-icon">🚨</span><span class="nav-btn-label">Alertes</span><span class="nav-btn-badge" id="nav-verif-badge" style="display:none;">0</span></button>
+    <button class="nav-btn" onclick="switchTab2('history',this)"><span class="nav-btn-icon">📅</span><span class="nav-btn-label">Histo.</span></button>
+    <button class="nav-btn" onclick="switchTab2('upcoming',this)"><span class="nav-btn-icon">🔮</span><span class="nav-btn-label">À venir</span></button>
   </div>
 
   <div class="main">
@@ -363,6 +396,8 @@ tr:hover td{background:var(--dark2);}
       <div id="upcoming-container"><div class="loading"><div class="spinner"></div>Chargement...</div></div>
     </div>
   </div>
+
+  </div>
 </div>
 
 <div class="overlay" id="qr-modal">
@@ -411,6 +446,7 @@ function checkSession() {
     D.supervisor = session.nom;
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('app').classList.add('show');
+    
     document.getElementById('hdr-user').textContent = session.nom;
     init();
     return true;
@@ -436,6 +472,7 @@ function doLogin() {
       saveSession(data.nom);
       document.getElementById('login-screen').style.display='none';
       document.getElementById('app').classList.add('show');
+      
       document.getElementById('hdr-user').textContent=data.nom;
       init();
     } else{document.getElementById('login-error').classList.add('show');document.getElementById('login-input').value='';}
@@ -446,6 +483,7 @@ function logout(){
   try { localStorage.removeItem(SESSION_KEY); } catch(e) {}
   document.getElementById('login-screen').style.display='flex';
   document.getElementById('app').classList.remove('show');
+  
   document.getElementById('login-input').value='';
   D.supervisor=null;
 }
@@ -484,21 +522,39 @@ function updateStats(){
   var totalA=0,totalP=0;
   D.prestas.forEach(function(pr){totalA+=pr.agents.length;totalP+=getPointes(pr.id);});
   var verifCount=D.pointages.filter(function(p){return p.statutVerif&&(p.statutVerif.indexOf('À vérifier')>-1||p.statutVerif.indexOf('Non affecté')>-1||p.statutVerif.indexOf('non vérifiée')>-1);}).length;
+  // Ajoute les non-affectés détectés côté client
+  var nonAffClientIds=new Set();
+  D.prestas.forEach(function(pr){getNonAffectes(pr.id,pr.siteId).forEach(function(p){nonAffClientIds.add(p.id);});});
+  var extraNonAff=D.pointages.filter(function(p){return nonAffClientIds.has(p.id)&&!(p.statutVerif&&(p.statutVerif.indexOf('À vérifier')>-1||p.statutVerif.indexOf('Non affecté')>-1||p.statutVerif.indexOf('non vérifiée')>-1));}).length;
+  verifCount+=extraNonAff;
   document.getElementById('s-prestas').textContent=D.prestas.length;
   document.getElementById('s-pointes').textContent=D.pointages.filter(function(p){return p.type==='Début de service';}).length;
   document.getElementById('s-manquants').textContent=Math.max(0,totalA-totalP);
   document.getElementById('s-taux').textContent=totalA>0?Math.round(totalP/totalA*100)+'%':'—';
   document.getElementById('s-verif').textContent=verifCount;
   var badge=document.getElementById('tab-verif-badge');
-  if(verifCount>0){badge.style.display='inline-block';badge.textContent=verifCount;}else{badge.style.display='none';}
+  var navBadge=document.getElementById('nav-verif-badge');
+  if(verifCount>0){
+    badge.style.display='inline-block';badge.textContent=verifCount;
+    if(navBadge){navBadge.style.display='block';navBadge.textContent=verifCount;}
+  }else{
+    badge.style.display='none';
+    if(navBadge)navBadge.style.display='none';
+  }
 }
 
 function getNonAffectes(prestaId, siteId){
-  // Pointages dont le siteId correspond mais sans prestationId, ou prestationId différent
-  // (Inclut début ET fin de service)
+  var presta=D.prestas.find(function(p){return p.id===prestaId;});
+  var agentIds=presta?presta.agents.map(function(a){return(a.id||'').replace(/-/g,'').toLowerCase();}):[];
   return D.pointages.filter(function(p){
-    if(p.siteId!==siteId)return false;
-    if(p.prestationId===prestaId)return false;
+    // Doit être sur le même site OU lié à la même prestation
+    var matchSite=p.siteId&&siteId&&p.siteId.replace(/-/g,'').toLowerCase()===siteId.replace(/-/g,'').toLowerCase();
+    var matchPresta=p.prestationId&&prestaId&&p.prestationId.replace(/-/g,'').toLowerCase()===prestaId.replace(/-/g,'').toLowerCase();
+    if(!matchSite&&!matchPresta)return false;
+    // Si l'agent est dans la liste des affectés → normal
+    var pAgentId=p.agentId?(p.agentId||'').replace(/-/g,'').toLowerCase():'';
+    if(pAgentId&&agentIds.indexOf(pAgentId)>-1)return false;
+    // Sinon c'est un non-affecté
     return true;
   });
 }
@@ -600,21 +656,73 @@ function renderTimeline(){
 
 // ── À VÉRIFIER ─────────────────────────────────────────────────────────────
 function renderVerif(){
-  var pts=D.pointages.filter(function(p){return p.statutVerif&&(p.statutVerif.indexOf('À vérifier')>-1||p.statutVerif.indexOf('Non affecté')>-1||p.statutVerif.indexOf('non vérifiée')>-1);});
+  // Collecte les pointages à vérifier par statut Notion
+  var ptsStatut=D.pointages.filter(function(p){return p.statutVerif&&(p.statutVerif.indexOf('À vérifier')>-1||p.statutVerif.indexOf('Non affecté')>-1||p.statutVerif.indexOf('non vérifiée')>-1);});
+  
+  // Collecte aussi les non-affectés détectés côté client
+  var nonAffIds=new Set();
+  D.prestas.forEach(function(pr){
+    var na=getNonAffectes(pr.id, pr.siteId);
+    na.forEach(function(p){nonAffIds.add(p.id);});
+  });
+  var ptsNonAff=D.pointages.filter(function(p){return nonAffIds.has(p.id)&&!ptsStatut.some(function(ps){return ps.id===p.id;});});
+  
+  var pts=ptsStatut.concat(ptsNonAff);
   pts.sort(function(a,b){return new Date(b.horodatage)-new Date(a.horodatage);});
+  
   if(!pts.length){document.getElementById('verif-container').innerHTML='<div class="empty">✓ Aucun pointage à vérifier</div>';return;}
-  var html='<div class="table-wrap"><table><thead><tr><th>Heure</th><th>Agent</th><th>Nom saisi</th><th>Type</th><th>Site</th><th>Statut</th><th>Action</th></tr></thead><tbody>';
+  var html='';
   pts.forEach(function(p){
     var h=new Date(p.horodatage).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
-    var typeBadge=p.type==='Début de service'?'<span class="badge debut">Début</span>':'<span class="badge fin">Fin</span>';
-    var statutBadge='<span class="badge alert">À vérifier</span>';
-    if(p.statutVerif&&p.statutVerif.indexOf('non vérifiée')>-1)statutBadge='<span class="badge alert" style="background:rgba(226,75,74,.25);font-weight:bold;">🔴 Non vérifié</span>';
-    else if(p.statutVerif&&p.statutVerif.indexOf('Non affecté')>-1)statutBadge='<span class="badge" style="background:rgba(232,131,58,.15);color:#E8833A;border:1px solid rgba(232,131,58,.3);">Non affecté</span>';
-    html+='<tr><td class="td-mono">'+h+'</td><td>'+escHtml(p.agentNom||'—')+'</td><td><strong>'+escHtml(p.nomSaisi||'—')+'</strong></td><td>'+typeBadge+'</td><td class="td-mono">'+escHtml(p.siteName||'—')+'</td><td>'+statutBadge+'</td>';
-    html+='<td>'+(p.notionUrl?'<a href="'+p.notionUrl+'" target="_blank" class="btn-link">Notion →</a>':'—')+'</td></tr>';
+    var typeBadge=p.type==='Début de service'?'<span class="badge debut">🟢 Début</span>':'<span class="badge fin">🔴 Fin</span>';
+    var isNonVerif=p.statutVerif&&p.statutVerif.indexOf('non vérifiée')>-1;
+    var isNonAff=nonAffIds.has(p.id)||(p.statutVerif&&p.statutVerif.indexOf('Non affecté')>-1);
+    var statutBadge='<span class="badge alert">⚠ À vérifier</span>';
+    if(isNonVerif)statutBadge='<span class="badge alert" style="background:rgba(226,75,74,.25);font-weight:bold;">🔴 Non vérifié</span>';
+    else if(isNonAff)statutBadge='<span class="badge" style="background:rgba(232,131,58,.15);color:#E8833A;border:1px solid rgba(232,131,58,.3);">⚠ Non affecté</span>';
+    
+    var borderColor=isNonVerif?'rgba(226,75,74,.4)':isNonAff?'rgba(232,131,58,.3)':'rgba(226,75,74,.25)';
+    var bgColor=isNonVerif?'rgba(226,75,74,.06)':isNonAff?'rgba(232,131,58,.04)':'rgba(226,75,74,.04)';
+    
+    html+='<div class="p-item" id="verif-'+p.id+'" style="border-color:'+borderColor+';background:'+bgColor+';margin-bottom:10px;">';
+    html+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">';
+    html+='<div class="p-agent" style="font-size:14px;">'+escHtml(p.agentNom||p.nomSaisi||'?')+'</div>';
+    html+=typeBadge+'</div>';
+    html+='<div class="p-meta" style="margin-bottom:8px;">';
+    html+='<span>🕐 '+h+'</span>';
+    if(p.siteName)html+='<span>📍 '+escHtml(p.siteName)+'</span>';
+    html+=statutBadge;
+    html+='</div>';
+    if(p.nomSaisi&&p.nomSaisi!==p.agentNom)html+='<div style="font-family:DM Mono,monospace;font-size:10px;color:var(--gray);margin-bottom:8px;">Nom saisi : <strong>'+escHtml(p.nomSaisi)+'</strong></div>';
+    // Boutons d'action
+    html+='<div style="display:flex;gap:8px;margin-top:4px;">';
+    html+='<button onclick="validatePointage(\''+p.id+'\',\'validate\')" style="flex:1;background:rgba(29,158,117,.15);border:1px solid rgba(29,158,117,.3);border-radius:4px;color:#5DCAA5;font-family:DM Mono,monospace;font-size:11px;padding:8px;cursor:pointer;">✅ Valider</button>';
+    html+='<button onclick="validatePointage(\''+p.id+'\',\'reject\')" style="flex:1;background:rgba(226,75,74,.1);border:1px solid rgba(226,75,74,.3);border-radius:4px;color:#F09595;font-family:DM Mono,monospace;font-size:11px;padding:8px;cursor:pointer;">❌ Rejeter</button>';
+    if(p.notionUrl)html+='<a href="'+p.notionUrl+'" target="_blank" style="background:var(--dark2);border:1px solid var(--dark3);border-radius:4px;color:var(--gray);font-family:DM Mono,monospace;font-size:11px;padding:8px 12px;cursor:pointer;text-decoration:none;display:flex;align-items:center;">Notion →</a>';
+    html+='</div>';
+    html+='</div>';
   });
-  html+='</tbody></table></div>';
   document.getElementById('verif-container').innerHTML=html;
+}
+
+function validatePointage(pageId, action){
+  var el=document.getElementById('verif-'+pageId);
+  if(el)el.style.opacity='.5';
+  fetch('/api/superviseur/validate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pageId:pageId,action:action})}).then(function(r){return r.json();}).then(function(data){
+    if(data.success){
+      if(el){
+        var msg=action==='validate'?'✅ Validé':'❌ Rejeté';
+        el.innerHTML='<div style="display:flex;align-items:center;justify-content:center;gap:8px;padding:8px;font-family:DM Mono,monospace;font-size:12px;color:'+(action==='validate'?'#5DCAA5':'#F09595')+';">'+msg+'</div>';
+        el.style.opacity='1';
+        el.style.borderColor=action==='validate'?'rgba(29,158,117,.3)':'rgba(226,75,74,.3)';
+        el.style.background=action==='validate'?'rgba(29,158,117,.06)':'rgba(226,75,74,.06)';
+        setTimeout(function(){loadToday();},1500);
+      }
+    } else {
+      if(el)el.style.opacity='1';
+      alert('Erreur: '+(data.error||'Réessayez'));
+    }
+  }).catch(function(){if(el)el.style.opacity='1';alert('Erreur de connexion');});
 }
 
 function loadHistory(){
@@ -676,15 +784,20 @@ function showUpcomingDetail(pr){
   document.getElementById('panel').classList.add('open');
 }
 
-function switchTab(id,btn){
+function switchTab(id,btn){switchTab2(id,btn);}
+
+function switchTab2(id,btn){
   document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active');});
+  document.querySelectorAll('.nav-btn').forEach(function(t){t.classList.remove('active');});
   document.querySelectorAll('.tab-content').forEach(function(t){t.classList.remove('active');});
-  btn.classList.add('active');
+  if(btn)btn.classList.add('active');
   document.getElementById('tab-'+id).classList.add('active');
   if(id==='history')loadHistory();
   if(id==='upcoming')loadUpcoming();
   if(id==='today'||id==='timeline'||id==='verif')loadToday();
 }
+
+function switchTabMobile(id,btn){switchTab2(id,btn);}
 
 function showQR(pr){
   var qrUrl=APP_URL+'?site='+pr.siteId+'&nom='+encodeURIComponent(pr.site);
@@ -721,7 +834,11 @@ function showDetail(pr){
     ptsOrphans.forEach(function(p){
       var h=new Date(p.horodatage).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
       var tb=p.type==='Début de service'?'<span class="badge debut" style="font-size:9px;">Début</span>':'<span class="badge fin" style="font-size:9px;">Fin</span>';
-      html+='<div class="p-item" style="border-color:rgba(226,75,74,.3);background:rgba(226,75,74,.06);"><div style="display:flex;justify-content:space-between;align-items:center;"><div class="p-agent">'+escHtml(p.agentNom||p.nomSaisi||'?')+'</div>'+tb+'</div><div class="p-meta"><span>🕐 '+h+'</span></div></div>';
+      html+='<div class="p-item" id="verif-'+p.id+'" style="border-color:rgba(226,75,74,.3);background:rgba(226,75,74,.06);"><div style="display:flex;justify-content:space-between;align-items:center;"><div class="p-agent">'+escHtml(p.agentNom||p.nomSaisi||'?')+'</div>'+tb+'</div><div class="p-meta"><span>🕐 '+h+'</span></div>';
+      html+='<div style="display:flex;gap:6px;margin-top:8px;">';
+      html+='<button onclick="validatePointage(\''+p.id+'\',\'validate\')" style="flex:1;background:rgba(29,158,117,.15);border:1px solid rgba(29,158,117,.3);border-radius:4px;color:#5DCAA5;font-family:DM Mono,monospace;font-size:10px;padding:7px;cursor:pointer;">✅ Valider</button>';
+      html+='<button onclick="validatePointage(\''+p.id+'\',\'reject\')" style="flex:1;background:rgba(226,75,74,.1);border:1px solid rgba(226,75,74,.3);border-radius:4px;color:#F09595;font-family:DM Mono,monospace;font-size:10px;padding:7px;cursor:pointer;">❌ Rejeter</button>';
+      html+='</div></div>';
     });
   }
 
@@ -735,8 +852,12 @@ function showDetail(pr){
       var tb=p.type==='Début de service'?'<span class="badge debut" style="font-size:9px;">Début</span>':'<span class="badge fin" style="font-size:9px;">Fin</span>';
       var verifBadge='';
       if(p.statutVerif&&p.statutVerif.indexOf('non vérifiée')>-1)verifBadge='<span style="color:#E24B4A;">🔴 Non vérifié</span>';
-      html+='<div class="p-item" style="border-color:rgba(232,131,58,.3);background:rgba(232,131,58,.06);"><div style="display:flex;justify-content:space-between;align-items:center;"><div class="p-agent" style="color:#E8833A;">⚠ '+escHtml(p.agentNom||p.nomSaisi||'?')+'</div>'+tb+'</div><div class="p-meta"><span>🕐 '+h+'</span><span style="color:#E8833A;">⚠ Non affecté</span>'+verifBadge;
-      if(p.notionUrl)html+='<a href="'+p.notionUrl+'" target="_blank" style="color:#E8833A;text-decoration:none;">Notion →</a>';
+      html+='<div class="p-item" id="verif-'+p.id+'" style="border-color:rgba(232,131,58,.3);background:rgba(232,131,58,.06);"><div style="display:flex;justify-content:space-between;align-items:center;"><div class="p-agent" style="color:#E8833A;">⚠ '+escHtml(p.agentNom||p.nomSaisi||'?')+'</div>'+tb+'</div><div class="p-meta"><span>🕐 '+h+'</span><span style="color:#E8833A;">⚠ Non affecté</span>'+verifBadge;
+      html+='</div>';
+      html+='<div style="display:flex;gap:6px;margin-top:8px;">';
+      html+='<button onclick="validatePointage(\''+p.id+'\',\'validate\')" style="flex:1;background:rgba(29,158,117,.15);border:1px solid rgba(29,158,117,.3);border-radius:4px;color:#5DCAA5;font-family:DM Mono,monospace;font-size:10px;padding:7px;cursor:pointer;">✅ Valider</button>';
+      html+='<button onclick="validatePointage(\''+p.id+'\',\'reject\')" style="flex:1;background:rgba(226,75,74,.1);border:1px solid rgba(226,75,74,.3);border-radius:4px;color:#F09595;font-family:DM Mono,monospace;font-size:10px;padding:7px;cursor:pointer;">❌ Rejeter</button>';
+      if(p.notionUrl)html+='<a href="'+p.notionUrl+'" target="_blank" style="background:var(--dark2);border:1px solid var(--dark3);border-radius:4px;color:var(--gray);font-family:DM Mono,monospace;font-size:10px;padding:7px 10px;text-decoration:none;display:flex;align-items:center;">Notion →</a>';
       html+='</div></div>';
     });
   }

@@ -549,14 +549,16 @@ function updateStats(){
 }
 
 function getNonAffectes(prestaId, siteId){
-  // Agents qui ont pointé sur ce site mais ne sont PAS dans la liste des affectés de la prestation
   var presta=D.prestas.find(function(p){return p.id===prestaId;});
-  var agentIds=presta?presta.agents.map(function(a){return a.id;}):[];
+  var agentIds=presta?presta.agents.map(function(a){return(a.id||'').replace(/-/g,'').toLowerCase();}):[];
   return D.pointages.filter(function(p){
     // Doit être sur le même site OU lié à la même prestation
-    if(p.siteId!==siteId&&p.prestationId!==prestaId)return false;
-    // Si l'agent est dans la liste des affectés → il est normal
-    if(agentIds.indexOf(p.agentId)>-1)return false;
+    var matchSite=p.siteId&&siteId&&p.siteId.replace(/-/g,'').toLowerCase()===siteId.replace(/-/g,'').toLowerCase();
+    var matchPresta=p.prestationId&&prestaId&&p.prestationId.replace(/-/g,'').toLowerCase()===prestaId.replace(/-/g,'').toLowerCase();
+    if(!matchSite&&!matchPresta)return false;
+    // Si l'agent est dans la liste des affectés → normal
+    var pAgentId=p.agentId?(p.agentId||'').replace(/-/g,'').toLowerCase():'';
+    if(pAgentId&&agentIds.indexOf(pAgentId)>-1)return false;
     // Sinon c'est un non-affecté
     return true;
   });
@@ -662,7 +664,7 @@ function renderVerif(){
   // Collecte les pointages à vérifier par statut Notion
   var ptsStatut=D.pointages.filter(function(p){return p.statutVerif&&(p.statutVerif.indexOf('À vérifier')>-1||p.statutVerif.indexOf('Non affecté')>-1||p.statutVerif.indexOf('non vérifiée')>-1);});
   
-  // Collecte aussi les non-affectés détectés côté client (au cas où le statut Notion ne serait pas bon)
+  // Collecte aussi les non-affectés détectés côté client
   var nonAffIds=new Set();
   D.prestas.forEach(function(pr){
     var na=getNonAffectes(pr.id, pr.siteId);
@@ -674,18 +676,58 @@ function renderVerif(){
   pts.sort(function(a,b){return new Date(b.horodatage)-new Date(a.horodatage);});
   
   if(!pts.length){document.getElementById('verif-container').innerHTML='<div class="empty">✓ Aucun pointage à vérifier</div>';return;}
-  var html='<div class="table-wrap"><table><thead><tr><th>Heure</th><th>Agent</th><th>Nom saisi</th><th>Type</th><th>Site</th><th>Statut</th><th>Action</th></tr></thead><tbody>';
+  var html='';
   pts.forEach(function(p){
     var h=new Date(p.horodatage).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
-    var typeBadge=p.type==='Début de service'?'<span class="badge debut">Début</span>':'<span class="badge fin">Fin</span>';
-    var statutBadge='<span class="badge alert">À vérifier</span>';
-    if(p.statutVerif&&p.statutVerif.indexOf('non vérifiée')>-1)statutBadge='<span class="badge alert" style="background:rgba(226,75,74,.25);font-weight:bold;">🔴 Non vérifié</span>';
-    else if(nonAffIds.has(p.id)||(p.statutVerif&&p.statutVerif.indexOf('Non affecté')>-1))statutBadge='<span class="badge" style="background:rgba(232,131,58,.15);color:#E8833A;border:1px solid rgba(232,131,58,.3);">Non affecté</span>';
-    html+='<tr><td class="td-mono">'+h+'</td><td>'+escHtml(p.agentNom||'—')+'</td><td><strong>'+escHtml(p.nomSaisi||'—')+'</strong></td><td>'+typeBadge+'</td><td class="td-mono">'+escHtml(p.siteName||'—')+'</td><td>'+statutBadge+'</td>';
-    html+='<td>'+(p.notionUrl?'<a href="'+p.notionUrl+'" target="_blank" class="btn-link">Notion →</a>':'—')+'</td></tr>';
+    var typeBadge=p.type==='Début de service'?'<span class="badge debut">🟢 Début</span>':'<span class="badge fin">🔴 Fin</span>';
+    var isNonVerif=p.statutVerif&&p.statutVerif.indexOf('non vérifiée')>-1;
+    var isNonAff=nonAffIds.has(p.id)||(p.statutVerif&&p.statutVerif.indexOf('Non affecté')>-1);
+    var statutBadge='<span class="badge alert">⚠ À vérifier</span>';
+    if(isNonVerif)statutBadge='<span class="badge alert" style="background:rgba(226,75,74,.25);font-weight:bold;">🔴 Non vérifié</span>';
+    else if(isNonAff)statutBadge='<span class="badge" style="background:rgba(232,131,58,.15);color:#E8833A;border:1px solid rgba(232,131,58,.3);">⚠ Non affecté</span>';
+    
+    var borderColor=isNonVerif?'rgba(226,75,74,.4)':isNonAff?'rgba(232,131,58,.3)':'rgba(226,75,74,.25)';
+    var bgColor=isNonVerif?'rgba(226,75,74,.06)':isNonAff?'rgba(232,131,58,.04)':'rgba(226,75,74,.04)';
+    
+    html+='<div class="p-item" id="verif-'+p.id+'" style="border-color:'+borderColor+';background:'+bgColor+';margin-bottom:10px;">';
+    html+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">';
+    html+='<div class="p-agent" style="font-size:14px;">'+escHtml(p.agentNom||p.nomSaisi||'?')+'</div>';
+    html+=typeBadge+'</div>';
+    html+='<div class="p-meta" style="margin-bottom:8px;">';
+    html+='<span>🕐 '+h+'</span>';
+    if(p.siteName)html+='<span>📍 '+escHtml(p.siteName)+'</span>';
+    html+=statutBadge;
+    html+='</div>';
+    if(p.nomSaisi&&p.nomSaisi!==p.agentNom)html+='<div style="font-family:DM Mono,monospace;font-size:10px;color:var(--gray);margin-bottom:8px;">Nom saisi : <strong>'+escHtml(p.nomSaisi)+'</strong></div>';
+    // Boutons d'action
+    html+='<div style="display:flex;gap:8px;margin-top:4px;">';
+    html+='<button onclick="validatePointage(\''+p.id+'\',\'validate\')" style="flex:1;background:rgba(29,158,117,.15);border:1px solid rgba(29,158,117,.3);border-radius:4px;color:#5DCAA5;font-family:DM Mono,monospace;font-size:11px;padding:8px;cursor:pointer;">✅ Valider</button>';
+    html+='<button onclick="validatePointage(\''+p.id+'\',\'reject\')" style="flex:1;background:rgba(226,75,74,.1);border:1px solid rgba(226,75,74,.3);border-radius:4px;color:#F09595;font-family:DM Mono,monospace;font-size:11px;padding:8px;cursor:pointer;">❌ Rejeter</button>';
+    if(p.notionUrl)html+='<a href="'+p.notionUrl+'" target="_blank" style="background:var(--dark2);border:1px solid var(--dark3);border-radius:4px;color:var(--gray);font-family:DM Mono,monospace;font-size:11px;padding:8px 12px;cursor:pointer;text-decoration:none;display:flex;align-items:center;">Notion →</a>';
+    html+='</div>';
+    html+='</div>';
   });
-  html+='</tbody></table></div>';
   document.getElementById('verif-container').innerHTML=html;
+}
+
+function validatePointage(pageId, action){
+  var el=document.getElementById('verif-'+pageId);
+  if(el)el.style.opacity='.5';
+  fetch('/api/superviseur/validate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pageId:pageId,action:action})}).then(function(r){return r.json();}).then(function(data){
+    if(data.success){
+      if(el){
+        var msg=action==='validate'?'✅ Validé':'❌ Rejeté';
+        el.innerHTML='<div style="display:flex;align-items:center;justify-content:center;gap:8px;padding:8px;font-family:DM Mono,monospace;font-size:12px;color:'+(action==='validate'?'#5DCAA5':'#F09595')+';">'+msg+'</div>';
+        el.style.opacity='1';
+        el.style.borderColor=action==='validate'?'rgba(29,158,117,.3)':'rgba(226,75,74,.3)';
+        el.style.background=action==='validate'?'rgba(29,158,117,.06)':'rgba(226,75,74,.06)';
+        setTimeout(function(){loadToday();},1500);
+      }
+    } else {
+      if(el)el.style.opacity='1';
+      alert('Erreur: '+(data.error||'Réessayez'));
+    }
+  }).catch(function(){if(el)el.style.opacity='1';alert('Erreur de connexion');});
 }
 
 function loadHistory(){

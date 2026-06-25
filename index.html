@@ -172,12 +172,7 @@ canvas{width:100%;height:130px;display:block;background:#fff;border-radius:4px;t
       <div class="field" id="verify-field" style="display:none">
         <div class="field-label">Vérification d'identité</div>
         <div class="verify-box">
-          <div class="verify-title">Confirmez votre identité (au choix)</div>
-          <div class="verify-option">
-            <div class="verify-hint">🔐 4 derniers chiffres de votre carte pro CNAPS</div>
-            <input type="password" inputmode="numeric" maxlength="4" id="cnaps-input" placeholder="••••" oninput="onVerify()" autocomplete="off">
-          </div>
-          <div class="verify-or">— OU —</div>
+          <div class="verify-title">Confirmez votre identité</div>
           <div class="verify-option">
             <div class="verify-hint">🎂 Date de naissance (JJ/MM)</div>
             <input type="text" inputmode="numeric" maxlength="5" id="dob-input" placeholder="Ex: 15/03" oninput="onVerify()" autocomplete="off">
@@ -294,10 +289,12 @@ function searchAgent(){
   hideErr('nom-error');
   showOverlay('Recherche en cours...');
 
-  // Recherche exacte (insensible à la casse et aux accents)
-  var norm=function(s){return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();};
+  // Recherche exacte (insensible à la casse et aux accents, dans les deux ordres)
+  var norm=function(s){return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().replace(/\s+/g,' ');};
   var normNom=norm(nom);
-  var matches=S.siteAgents.filter(function(a){return norm(a.nom)===normNom;});
+  var parts=normNom.split(' ');
+  var normInverse=parts.length>=2?parts.slice(1).concat(parts[0]).join(' '):normNom;
+  var matches=S.siteAgents.filter(function(a){var n=norm(a.nom);return n===normNom||n===normInverse;});
 
   // Si pas de résultat avec les agents du site, cherche dans toute la base
   if(matches.length===0&&S.siteId){
@@ -347,12 +344,8 @@ function selectHomonyme(agent){
 }
 
 function showVerifyNotFound(nom){
-  // Agent non trouvé — propose de pointer "À vérifier"
-  document.getElementById('verify-field').style.display='flex';
-  document.getElementById('verify-field').querySelector('.verify-title').textContent='Nom non reconnu — votre pointage sera vérifié';
-  document.getElementById('cnaps-input').style.display='none';
-  document.getElementById('dob-input').style.display='none';
-  document.querySelector('.verify-or').style.display='none';
+  // Agent non trouvé — propose de pointer "À vérifier" directement
+  document.getElementById('verify-field').style.display='none';
   // Affiche directement signature pour pointer "À vérifier"
   showSig();
 }
@@ -394,57 +387,43 @@ function showVerify(agent, horsPrestation){
   }
   // Affiche le champ de vérification
   document.getElementById('verify-field').style.display='flex';
-  document.getElementById('cnaps-input').style.display='block';
-  document.getElementById('dob-input').style.display='block';
-  document.querySelector('.verify-or').style.display='block';
-  document.getElementById('cnaps-input').value='';
   document.getElementById('dob-input').value='';
   document.getElementById('verify-error').className='alert danger';
   document.getElementById('verify-ok').className='alert success';
 }
 
 function onVerify(){
-  var cnaps=document.getElementById('cnaps-input').value.trim();
   var dob=document.getElementById('dob-input').value.trim();
   var agent=S.selectedAgent;
   if(!agent)return;
 
   var verified=false;
-  var method='';
-
-  // Vérification CNAPS (4 derniers chiffres)
-  if(cnaps.length===4&&agent.cartePro){
-    var last4=agent.cartePro.replace(/[\s\-.]/g,'').slice(-4);
-    if(cnaps===last4){verified=true;method='CNAPS';}
-  }
 
   // Vérification date de naissance (JJ/MM)
-  if(!verified&&dob.length>=4&&agent.dateNaissance){
+  if(dob.length>=4&&agent.dateNaissance){
     var dobClean=dob.replace(/[^0-9]/g,'');
-    var dnClean=agent.dateNaissance.replace(/[^0-9]/g,'');
     // Extrait JJ et MM de la date de naissance (format YYYY-MM-DD)
     var parts=agent.dateNaissance.split('-');
     if(parts.length>=3){
-      var expected=(parts[2]+parts[1]);// JJMM
-      if(dobClean===expected||dob.replace('/','')===parts[2]+parts[1]){verified=true;method='DATE_NAISSANCE';}
+      var expected=parts[2]+parts[1];// JJMM
+      if(dobClean===expected)verified=true;
     }
   }
 
   if(verified){
-    S.verifyMethod=method;
+    S.verifyMethod='DATE_NAISSANCE';
     document.getElementById('verify-error').className='alert danger';
     document.getElementById('verify-ok').className='alert success show';
-    document.getElementById('cnaps-input').className='ok';
     document.getElementById('dob-input').className='ok';
     showSig();
-  } else if((cnaps.length===4||dob.length>=4)){
+  } else if(dob.length>=4){
     S.verifyAttempts++;
     if(S.verifyAttempts>=MAX_VERIFY){
       showErr('verify-error','3 tentatives incorrectes. Contactez votre coordinateur.');
       document.getElementById('btn-submit').style.display='none';
     } else {
       var r=MAX_VERIFY-S.verifyAttempts;
-      showErr('verify-error','Code incorrect — '+r+' tentative'+(r>1?'s':'')+' restante'+(r>1?'s':''));
+      showErr('verify-error','Date incorrecte — '+r+' tentative'+(r>1?'s':'')+' restante'+(r>1?'s':''));
     }
   }
 }
@@ -510,8 +489,8 @@ function resetForm(){
   ['verify-field','sig-field','btn-submit','presta-field','homonyme-field'].forEach(function(id){document.getElementById(id).style.display='none';});
   ['nom-error','check-alert','verify-error','sig-alert'].forEach(function(id){document.getElementById(id).className='alert danger';});
   document.getElementById('verify-ok').className='alert success';
-  document.getElementById('cnaps-input').value='';document.getElementById('dob-input').value='';
-  document.getElementById('cnaps-input').className='';document.getElementById('dob-input').className='';
+  document.getElementById('dob-input').value='';
+  document.getElementById('dob-input').className='';
   selectType('debut');showScreen('screen-form');
 }
 

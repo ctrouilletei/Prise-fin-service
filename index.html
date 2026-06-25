@@ -41,25 +41,28 @@ html,body{min-height:100vh;background:var(--black);font-family:'Syne',sans-serif
 .type-sub{font-size:10px;color:var(--gray);font-family:'DM Mono',monospace;margin-top:2px}
 .field{display:flex;flex-direction:column;gap:8px}
 .field-label{font-family:'DM Mono',monospace;font-size:10px;color:var(--gray);letter-spacing:.12em;text-transform:uppercase}
-.search-wrap{position:relative}
-.search-wrap svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);width:16px;height:16px;stroke:var(--gray);fill:none;stroke-width:2}
-.search-wrap input{padding-left:38px}
-input[type=text]{width:100%;background:var(--dark);border:1px solid var(--dark3);border-radius:var(--radius-sm);color:var(--white);font-family:'Syne',sans-serif;font-size:15px;padding:11px 14px;outline:none;transition:border-color .2s}
+input[type=text],input[type=password]{width:100%;background:var(--dark);border:1px solid var(--dark3);border-radius:var(--radius-sm);color:var(--white);font-family:'Syne',sans-serif;font-size:15px;padding:11px 14px;outline:none;transition:border-color .2s}
 input:focus{border-color:var(--gold)}
 input::placeholder{color:var(--gray-light)}
-.agent-list{background:var(--dark);border:1px solid var(--dark3);border-radius:var(--radius-sm);max-height:220px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--dark3) transparent}
-.agent-row{padding:11px 14px;display:flex;align-items:center;gap:12px;cursor:pointer;border-bottom:1px solid var(--dark3);transition:background .15s}
-.agent-row:last-child{border-bottom:none}
-.agent-row:hover{background:var(--dark2)}
-.agent-row.selected{background:rgba(201,168,76,.08);border-left:2px solid var(--gold)}
-.avatar{width:34px;height:34px;border-radius:50%;background:var(--dark2);border:1px solid var(--dark3);display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-size:11px;color:var(--gold);flex-shrink:0}
-.agent-row.selected .avatar{background:rgba(201,168,76,.15);border-color:var(--gold)}
-.agent-name{font-size:14px;font-weight:500}
-.agent-meta{font-size:11px;color:var(--gray);font-family:'DM Mono',monospace}
-.empty-list{padding:20px;text-align:center;color:var(--gray);font-size:13px;font-family:'DM Mono',monospace}
+input.ok{border-color:var(--green)}
+input.err{border-color:var(--red)}
 .alert{border-radius:var(--radius-sm);padding:10px 14px;font-size:12px;font-family:'DM Mono',monospace;display:none;align-items:center;gap:8px;line-height:1.4}
 .alert.danger{background:rgba(226,75,74,.1);border:1px solid rgba(226,75,74,.3);color:#F09595}
+.alert.success{background:rgba(29,158,117,.1);border:1px solid rgba(29,158,117,.3);color:#5DCAA5}
+.alert.warn{background:rgba(232,131,58,.1);border:1px solid rgba(232,131,58,.3);color:#E8833A}
 .alert.show{display:flex}
+.verify-box{background:var(--dark2);border:1px solid var(--dark3);border-radius:var(--radius);padding:16px;display:flex;flex-direction:column;gap:14px}
+.verify-title{font-family:'DM Mono',monospace;font-size:11px;color:var(--gray);text-transform:uppercase;letter-spacing:.1em}
+.verify-or{text-align:center;font-family:'DM Mono',monospace;font-size:11px;color:var(--gray2);padding:4px 0}
+.verify-option{display:flex;flex-direction:column;gap:6px}
+.verify-hint{font-size:11px;color:var(--gray);font-family:'DM Mono',monospace}
+.homonyme-list{display:flex;flex-direction:column;gap:6px}
+.homonyme-item{background:var(--dark);border:1px solid var(--dark3);border-radius:var(--radius-sm);padding:10px 14px;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:10px}
+.homonyme-item:hover{border-color:var(--gold)}
+.homonyme-item.selected{background:rgba(201,168,76,.08);border-color:var(--gold)}
+.hom-avatar{width:32px;height:32px;border-radius:50%;background:var(--dark2);border:1px solid var(--dark3);display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-size:11px;color:var(--gold);flex-shrink:0}
+.hom-name{font-size:14px;font-weight:500}
+.hom-hint{font-size:11px;color:var(--gray);font-family:'DM Mono',monospace}
 .presta-badge{background:rgba(201,168,76,.08);border:1px solid rgba(201,168,76,.25);border-radius:var(--radius-sm);padding:10px 14px;display:flex;align-items:center;gap:10px}
 .presta-name{font-size:13px;font-weight:500;color:var(--gold)}
 .presta-sub{font-size:11px;color:var(--gray);font-family:'DM Mono',monospace}
@@ -71,6 +74,8 @@ canvas{width:100%;height:130px;display:block;background:#fff;border-radius:4px;t
 .btn-submit{width:100%;background:var(--gold);color:var(--black);border:none;border-radius:var(--radius);padding:15px;font-family:'Syne',sans-serif;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .2s}
 .btn-submit:hover{background:#D4A940}
 .btn-submit:disabled{opacity:.35;cursor:not-allowed}
+.btn-search{width:100%;background:var(--dark2);border:1px solid var(--dark3);border-radius:var(--radius);padding:13px;font-family:'Syne',sans-serif;font-size:14px;font-weight:500;color:var(--white);cursor:pointer;transition:all .2s}
+.btn-search:hover{border-color:var(--gold);color:var(--gold)}
 .screen{display:none}
 .screen.active{display:flex;flex-direction:column}
 .overlay{position:fixed;inset:0;background:rgba(14,14,14,.92);display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px;z-index:200}
@@ -121,8 +126,11 @@ canvas{width:100%;height:130px;display:block;background:#fff;border-radius:4px;t
     <div class="clock-date" id="clock-date">—</div>
     <div class="clock-time" id="clock-time">—</div>
   </div>
+
   <div id="screen-form" class="screen active">
     <div class="body">
+
+      <!-- TYPE -->
       <div class="field">
         <div class="field-label">Type de pointage *</div>
         <div class="type-grid">
@@ -138,23 +146,57 @@ canvas{width:100%;height:130px;display:block;background:#fff;border-radius:4px;t
           </div>
         </div>
       </div>
+
+      <!-- GPS -->
       <div class="field">
         <div class="field-label">Géolocalisation</div>
         <div class="geo-info" id="geo-info"><span>⏳</span><span id="geo-info-txt">Localisation en cours...</span></div>
       </div>
+
+      <!-- NOM -->
       <div class="field">
-        <div class="field-label">Mon nom *</div>
-        <div class="search-wrap" style="margin-bottom:8px">
-          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-          <input type="text" id="search-input" placeholder="Rechercher mon nom..." oninput="filterAgents(this.value)" autocomplete="off">
-        </div>
-        <div class="agent-list" id="agent-list"><div class="empty-list" id="list-placeholder">⏳ Chargement des agents...</div></div>
+        <div class="field-label">Mon nom et prénom *</div>
+        <input type="text" id="nom-input" placeholder="Ex: Jean DUPONT" autocomplete="off" autocorrect="off" spellcheck="false">
+        <div class="alert warn" id="nom-hint" style="display:flex;">✏️ Saisissez votre nom et prénom exacts tels qu'ils apparaissent sur votre carte pro</div>
+        <button class="btn-search" onclick="searchAgent()">Rechercher →</button>
+        <div class="alert danger" id="nom-error"></div>
       </div>
+
+      <!-- HOMONYMES -->
+      <div class="field" id="homonyme-field" style="display:none">
+        <div class="field-label">Plusieurs agents correspondent</div>
+        <div class="homonyme-list" id="homonyme-list"></div>
+      </div>
+
+      <!-- VÉRIFICATION IDENTITÉ -->
+      <div class="field" id="verify-field" style="display:none">
+        <div class="field-label">Vérification d'identité</div>
+        <div class="verify-box">
+          <div class="verify-title">Confirmez votre identité (au choix)</div>
+          <div class="verify-option">
+            <div class="verify-hint">🔐 4 derniers chiffres de votre carte pro CNAPS</div>
+            <input type="password" inputmode="numeric" maxlength="4" id="cnaps-input" placeholder="••••" oninput="onVerify()" autocomplete="off">
+          </div>
+          <div class="verify-or">— OU —</div>
+          <div class="verify-option">
+            <div class="verify-hint">🎂 Date de naissance (JJ/MM)</div>
+            <input type="text" inputmode="numeric" maxlength="5" id="dob-input" placeholder="Ex: 15/03" oninput="onVerify()" autocomplete="off">
+          </div>
+          <div class="alert danger" id="verify-error"></div>
+          <div class="alert success" id="verify-ok">✓ Identité confirmée</div>
+        </div>
+      </div>
+
+      <!-- PRESTATION -->
       <div class="field" id="presta-field" style="display:none">
         <div class="field-label">Prestation détectée</div>
         <div class="presta-badge"><div style="font-size:18px">📋</div><div><div class="presta-name" id="presta-name">—</div><div class="presta-sub" id="presta-sub">—</div></div></div>
       </div>
+
+      <!-- ALERTE CHECK -->
       <div class="alert danger" id="check-alert"></div>
+
+      <!-- SIGNATURE -->
       <div class="field" id="sig-field" style="display:none">
         <div class="field-label">Signature *</div>
         <div class="sig-wrap">
@@ -164,15 +206,18 @@ canvas{width:100%;height:130px;display:block;background:#fff;border-radius:4px;t
         </div>
         <div class="alert danger" id="sig-alert" style="margin-top:6px"></div>
       </div>
+
       <button class="btn-submit" id="btn-submit" onclick="submitForm()" style="display:none" disabled>✓ Valider ma prise de service</button>
     </div>
   </div>
+
   <div id="screen-success" class="screen">
     <div class="success-ring">✓</div>
     <div class="success-title">Pointage <span>enregistré</span></div>
     <div class="success-detail" id="success-detail"></div>
     <button class="btn-new" onclick="resetForm()">↺ Nouveau pointage</button>
   </div>
+
   <div id="screen-blocked" class="screen">
     <div class="blocked-icon">⛔</div>
     <div class="blocked-title">Pointage déjà effectué</div>
@@ -181,20 +226,21 @@ canvas{width:100%;height:130px;display:block;background:#fff;border-radius:4px;t
   </div>
 </div>
 <div class="overlay" id="overlay"><div class="spinner"></div><div class="overlay-msg" id="overlay-msg">Chargement...</div></div>
+
 <script>
-var S={type:'debut',siteId:null,siteName:null,agents:[],siteGps:null,selectedAgent:null,prestation:null,sigDrawn:false,geo:null};
+var S={type:'debut',siteId:null,siteName:null,siteGps:null,siteAgents:[],selectedAgent:null,prestation:null,sigDrawn:false,geo:null,verifyAttempts:0};
+var MAX_VERIFY = 3;
 
 function api(method,path,body){return fetch(path,{method:method,headers:{'Content-Type':'application/json'},body:body?JSON.stringify(body):undefined}).then(function(r){return r.json();});}
-
-function distanceMetres(lat1,lng1,lat2,lng2){var R=6371000,dLat=(lat2-lat1)*Math.PI/180,dLng=(lng2-lng1)*Math.PI/180,a=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)*Math.sin(dLng/2);return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));}
+function distanceMetres(lat1,lng1,lat2,lng2){var R=6371000,dLat=(lat2-lat1)*Math.PI/180,dLng=(lng2-lng1)*Math.PI/180,a=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)*Math.sin(dLng/2);return Math.round(R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a)));}
 
 window.addEventListener('DOMContentLoaded',function(){
-  initClock();initGeo();
+  initClock(); initGeo();
   var p=new URLSearchParams(window.location.search);
   S.siteId=p.get('site');
   S.siteName=p.get('nom')?decodeURIComponent(p.get('nom')):null;
   if(S.siteId){document.getElementById('site-banner').style.display='flex';document.getElementById('site-name-display').textContent=S.siteName||'Site';}
-  loadAgents();
+  loadSiteAgents();
 });
 
 function initClock(){
@@ -212,7 +258,7 @@ function initGeo(){
 }
 function updateGeoDisplay(){
   if(!S.geo)return;
-  if(S.siteGps&&S.geo){var dist=Math.round(distanceMetres(S.geo.lat,S.geo.lng,S.siteGps.lat,S.siteGps.lng)),rayon=S.siteGps.rayon||500;var distLabel=dist>=1000?(dist/1000).toFixed(1)+'km':dist+'m';setGeoState(dist<=rayon?'ok':'warn',dist<=rayon?'Sur site — précision ±'+S.geo.acc+'m':'Éloigné du site ('+distLabel+') — vérifiez votre position');}
+  if(S.siteGps){var dist=distanceMetres(S.geo.lat,S.geo.lng,S.siteGps.lat,S.siteGps.lng),rayon=S.siteGps.rayon||500;var dl=dist>=1000?(dist/1000).toFixed(1)+'km':dist+'m';setGeoState(dist<=rayon?'ok':'warn',dist<=rayon?'Sur site — précision ±'+S.geo.acc+'m':'Éloigné du site ('+dl+') — vérifiez votre position');}
   else{setGeoState('ok','Position capturée — précision ±'+S.geo.acc+'m');}
 }
 function setGeoState(state,msg){
@@ -223,62 +269,193 @@ function setGeoState(state,msg){
   document.getElementById('geo-info-txt').textContent=msg+(state==='err'?' — pointage autorisé':'');
 }
 
-function selectType(t){S.type=t;document.getElementById('card-debut').classList.toggle('selected',t==='debut');document.getElementById('card-fin').classList.toggle('selected',t==='fin');if(S.selectedAgent)selectAgent(S.selectedAgent);}
-
-function loadAgents(){
-  var u=S.siteId?'/api/agents?site='+S.siteId:'/api/agents';
-  api('GET',u,null).then(function(data){
-    S.agents=data.agents||[];S.siteGps=data.siteGps||null;
-    if(S.siteGps&&S.geo)updateGeoDisplay();
-    if(S.siteId&&S.agents.length>0)document.getElementById('site-sub-display').textContent=S.agents.length+' agents affectés';
-    else if(S.siteId&&data.message)document.getElementById('site-sub-display').textContent=data.message;
-    renderAgents(S.agents);
-  }).catch(function(){document.getElementById('list-placeholder').textContent='⚠ Erreur — rechargez la page';});
+function selectType(t){
+  S.type=t;
+  document.getElementById('card-debut').classList.toggle('selected',t==='debut');
+  document.getElementById('card-fin').classList.toggle('selected',t==='fin');
 }
 
-function renderAgents(agents){
-  var list=document.getElementById('agent-list'),q=document.getElementById('search-input').value.toLowerCase();
-  var f=q?agents.filter(function(a){return a.nom.toLowerCase().indexOf(q)!==-1;}):agents;
-  if(!f.length){list.innerHTML='<div class="empty-list">Aucun agent trouvé</div>';return;}
-  list.innerHTML=f.map(function(a){
-    var ini=a.nom.split(' ').map(function(w){return w[0];}).slice(0,2).join('').toUpperCase();
-    var sel=S.selectedAgent&&S.selectedAgent.id===a.id;
-    var meta=a.prestationNom?a.prestationNom:'Agent';
-    return '<div class="agent-row'+(sel?' selected':'')+'" onclick=\'selectAgent('+JSON.stringify(a).replace(/'/g,"&#39;")+')\'>'+
-      '<div class="avatar">'+ini+'</div>'+
-      '<div><div class="agent-name">'+a.nom+'</div><div class="agent-meta">'+meta+'</div></div></div>';
+// Charge les agents du site en arrière-plan (pour la recherche)
+function loadSiteAgents(){
+  var url=S.siteId?'/api/agents?site='+S.siteId:'/api/agents';
+  api('GET',url,null).then(function(data){
+    S.siteAgents=data.agents||[];
+    S.siteGps=data.siteGps||null;
+    if(S.siteGps&&S.geo)updateGeoDisplay();
+    if(S.siteId)document.getElementById('site-sub-display').textContent=S.siteAgents.length+' agents affectés';
+  });
+}
+
+// Recherche de l'agent par nom saisi
+function searchAgent(){
+  var nom=document.getElementById('nom-input').value.trim();
+  if(!nom){showErr('nom-error','Veuillez saisir votre nom et prénom');return;}
+  if(nom.length<3){showErr('nom-error','Nom trop court — saisissez votre nom complet');return;}
+  hideErr('nom-error');
+  showOverlay('Recherche en cours...');
+
+  // Recherche exacte (insensible à la casse et aux accents)
+  var norm=function(s){return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();};
+  var normNom=norm(nom);
+  var matches=S.siteAgents.filter(function(a){return norm(a.nom)===normNom;});
+
+  // Si pas de résultat avec les agents du site, cherche dans toute la base
+  if(matches.length===0&&S.siteId){
+    api('GET','/api/agent/search?nom='+encodeURIComponent(nom),null).then(function(data){
+      hideOverlay();
+      handleSearchResults(data.agents||[], nom, true);
+    }).catch(function(){hideOverlay();showErr('nom-error','Erreur de recherche. Réessayez.');});
+  } else {
+    hideOverlay();
+    handleSearchResults(matches, nom, false);
+  }
+}
+
+function handleSearchResults(matches, nomSaisi, horsPrestation){
+  if(matches.length===0){
+    // Aucune correspondance → pointage "À vérifier"
+    showErr('nom-error','Nom non trouvé. Vérifiez l\'orthographe ou contactez votre coordinateur.');
+    // Proposer quand même de pointer avec vérification manuelle
+    S.selectedAgent={id:null,nom:nomSaisi,cartePro:'',dateNaissance:'',aVerifier:true};
+    showVerifyNotFound(nomSaisi);
+  } else if(matches.length===1){
+    // Correspondance unique
+    selectAgentFound(matches[0], horsPrestation);
+  } else {
+    // Homonymes
+    hideOverlay();
+    showHomonymes(matches);
+  }
+}
+
+function showHomonymes(agents){
+  document.getElementById('homonyme-field').style.display='flex';
+  document.getElementById('homonyme-list').innerHTML=agents.map(function(a){
+    var hint='';
+    if(a.cartePro)hint='Carte pro: ...'+a.cartePro.replace(/[\s-]/g,'').slice(-4);
+    if(a.dateNaissance&&!hint)hint='Né(e) le: '+a.dateNaissance.substring(0,10);
+    return '<div class="homonyme-item" onclick=\'selectHomonyme('+JSON.stringify(a).replace(/'/g,"&#39;")+')\'>'+
+      '<div class="hom-avatar">'+a.nom.split(' ').map(function(w){return w[0];}).slice(0,2).join('').toUpperCase()+'</div>'+
+      '<div><div class="hom-name">'+a.nom+'</div><div class="hom-hint">'+hint+'</div></div></div>';
   }).join('');
 }
-function filterAgents(){renderAgents(S.agents);}
 
-function selectAgent(agent){
-  S.selectedAgent=agent;S.sigDrawn=false;clearSig();
-  document.getElementById('check-alert').className='alert danger';
-  document.getElementById('sig-field').style.display='none';
-  document.getElementById('btn-submit').style.display='none';
-  document.getElementById('btn-submit').disabled=true;
-  document.getElementById('presta-field').style.display='none';
-  renderAgents(S.agents);
-  showOverlay('Vérification en cours...');
-  api('GET','/api/check?agentId='+agent.id+'&type='+S.type,null).then(function(data){
-    if(data.alreadyPointed){hideOverlay();showScreen('screen-blocked');document.getElementById('blocked-msg').textContent=(S.type==='debut'?'Début de service déjà pointé aujourd\'hui à ':'Fin de service déjà pointée aujourd\'hui à ')+data.heure;return;}
-    if(S.type==='fin'){
-      api('GET','/api/check?agentId='+agent.id+'&type=debut',null).then(function(d2){
-        hideOverlay();
-        if(!d2.alreadyPointed){document.getElementById('check-alert').textContent='⚠ Vous n\'avez pas encore pointé votre début de service aujourd\'hui';document.getElementById('check-alert').className='alert danger show';}
-        else{showSig(agent);}
-      }).catch(function(){hideOverlay();showSig(agent);});
-    }else{hideOverlay();showSig(agent);}
-  }).catch(function(){hideOverlay();showSig(agent);});
+function selectHomonyme(agent){
+  document.querySelectorAll('.homonyme-item').forEach(function(el){el.classList.remove('selected');});
+  event.currentTarget.classList.add('selected');
+  selectAgentFound(agent, false);
 }
 
-function showSig(agent){
-  if(agent.prestationId){S.prestation={id:agent.prestationId,nom:agent.prestationNom};document.getElementById('presta-name').textContent=agent.prestationNom||'Prestation du jour';document.getElementById('presta-sub').textContent=S.siteName||'';document.getElementById('presta-field').style.display='flex';}
+function showVerifyNotFound(nom){
+  // Agent non trouvé — propose de pointer "À vérifier"
+  document.getElementById('verify-field').style.display='flex';
+  document.getElementById('verify-field').querySelector('.verify-title').textContent='Nom non reconnu — votre pointage sera vérifié';
+  document.getElementById('cnaps-input').style.display='none';
+  document.getElementById('dob-input').style.display='none';
+  document.querySelector('.verify-or').style.display='none';
+  // Affiche directement signature pour pointer "À vérifier"
+  showSig();
+}
+
+function selectAgentFound(agent, horsPrestation){
+  S.selectedAgent=agent;
+  S.verifyAttempts=0;
+  hideErr('nom-error');
+  document.getElementById('homonyme-field').style.display='none';
+
+  // Vérifie si déjà pointé
+  api('GET','/api/check?agentId='+agent.id+'&type='+S.type,null).then(function(data){
+    if(data.alreadyPointed){
+      showScreen('screen-blocked');
+      document.getElementById('blocked-msg').textContent=(S.type==='debut'?'Début de service déjà pointé à ':'Fin de service déjà pointé à ')+data.heure;
+      return;
+    }
+    if(S.type==='fin'){
+      api('GET','/api/check?agentId='+agent.id+'&type=debut',null).then(function(d2){
+        if(!d2.alreadyPointed){showErr('check-alert','⚠ Vous n\'avez pas encore pointé votre début de service aujourd\'hui');}
+        else{showVerify(agent, horsPrestation);}
+      }).catch(function(){showVerify(agent, horsPrestation);});
+    } else {
+      showVerify(agent, horsPrestation);
+    }
+  }).catch(function(){showVerify(agent, horsPrestation);});
+}
+
+function showVerify(agent, horsPrestation){
+  // Affiche prestation si trouvée
+  if(agent.prestationId){
+    S.prestation={id:agent.prestationId,nom:agent.prestationNom};
+    document.getElementById('presta-name').textContent=agent.prestationNom||'Prestation du jour';
+    document.getElementById('presta-sub').textContent=S.siteName||'';
+    document.getElementById('presta-field').style.display='flex';
+  }
+  if(horsPrestation){
+    showErr('check-alert','⚠ Vous n\'êtes pas affecté à une prestation active sur ce site. Votre pointage sera vérifié par votre coordinateur.');
+  }
+  // Affiche le champ de vérification
+  document.getElementById('verify-field').style.display='flex';
+  document.getElementById('cnaps-input').style.display='block';
+  document.getElementById('dob-input').style.display='block';
+  document.querySelector('.verify-or').style.display='block';
+  document.getElementById('cnaps-input').value='';
+  document.getElementById('dob-input').value='';
+  document.getElementById('verify-error').className='alert danger';
+  document.getElementById('verify-ok').className='alert success';
+}
+
+function onVerify(){
+  var cnaps=document.getElementById('cnaps-input').value.trim();
+  var dob=document.getElementById('dob-input').value.trim();
+  var agent=S.selectedAgent;
+  if(!agent)return;
+
+  var verified=false;
+  var method='';
+
+  // Vérification CNAPS (4 derniers chiffres)
+  if(cnaps.length===4&&agent.cartePro){
+    var last4=agent.cartePro.replace(/[\s\-.]/g,'').slice(-4);
+    if(cnaps===last4){verified=true;method='CNAPS';}
+  }
+
+  // Vérification date de naissance (JJ/MM)
+  if(!verified&&dob.length>=4&&agent.dateNaissance){
+    var dobClean=dob.replace(/[^0-9]/g,'');
+    var dnClean=agent.dateNaissance.replace(/[^0-9]/g,'');
+    // Extrait JJ et MM de la date de naissance (format YYYY-MM-DD)
+    var parts=agent.dateNaissance.split('-');
+    if(parts.length>=3){
+      var expected=(parts[2]+parts[1]);// JJMM
+      if(dobClean===expected||dob.replace('/','')===parts[2]+parts[1]){verified=true;method='DATE_NAISSANCE';}
+    }
+  }
+
+  if(verified){
+    S.verifyMethod=method;
+    document.getElementById('verify-error').className='alert danger';
+    document.getElementById('verify-ok').className='alert success show';
+    document.getElementById('cnaps-input').className='ok';
+    document.getElementById('dob-input').className='ok';
+    showSig();
+  } else if((cnaps.length===4||dob.length>=4)){
+    S.verifyAttempts++;
+    if(S.verifyAttempts>=MAX_VERIFY){
+      showErr('verify-error','3 tentatives incorrectes. Contactez votre coordinateur.');
+      document.getElementById('btn-submit').style.display='none';
+    } else {
+      var r=MAX_VERIFY-S.verifyAttempts;
+      showErr('verify-error','Code incorrect — '+r+' tentative'+(r>1?'s':'')+' restante'+(r>1?'s':''));
+    }
+  }
+}
+
+function showSig(){
   document.getElementById('sig-field').style.display='flex';
   document.getElementById('btn-submit').style.display='flex';
   document.getElementById('btn-submit').disabled=false;
 }
 
+// Signature
 var canvas=document.getElementById('sig-canvas'),ctx=canvas.getContext('2d'),drawing=false;
 ctx.strokeStyle='#111';ctx.lineWidth=3;ctx.lineCap='round';ctx.lineJoin='round';
 function pos(e){var r=canvas.getBoundingClientRect(),sx=canvas.width/r.width,sy=canvas.height/r.height,s=e.touches?e.touches[0]:e;return{x:(s.clientX-r.left)*sx,y:(s.clientY-r.top)*sy};}
@@ -291,46 +468,55 @@ canvas.addEventListener('touchend',function(){drawing=false;});
 function clearSig(){ctx.clearRect(0,0,canvas.width,canvas.height);S.sigDrawn=false;}
 
 function submitForm(){
-  if(!S.sigDrawn){document.getElementById('sig-alert').textContent='Veuillez signer avant de valider';document.getElementById('sig-alert').className='alert danger show';return;}
-  showOverlay('Envoi de la signature...');
+  if(!S.sigDrawn){showErr('sig-alert','Veuillez signer avant de valider');return;}
+  showOverlay('Enregistrement dans Notion...');
   var now=new Date(),heure=now.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
   var typeLabel=S.type==='debut'?'Début de service':'Fin de service';
   var geoStr=S.geo?S.geo.lat.toFixed(5)+', '+S.geo.lng.toFixed(5)+' (±'+S.geo.acc+'m)':'Non disponible';
   var geoStatut='';
-  if(S.geo&&S.siteGps){var dist=Math.round(distanceMetres(S.geo.lat,S.geo.lng,S.siteGps.lat,S.siteGps.lng));var distLabel=dist>=1000?(dist/1000).toFixed(1)+'km':dist+'m';geoStatut=' — '+distLabel+' du site';}
-  var signatureBase64=canvas.toDataURL('image/png');
-  document.getElementById('overlay-msg').textContent='Enregistrement dans Notion...';
+  if(S.geo&&S.siteGps){var dist=distanceMetres(S.geo.lat,S.geo.lng,S.siteGps.lat,S.siteGps.lng);var dl=dist>=1000?(dist/1000).toFixed(1)+'km':dist+'m';geoStatut=' — '+dl+' du site';}
   api('POST','/api/pointage',{
-    nom:typeLabel+' — '+S.selectedAgent.nom+' — '+heure,
+    nom:typeLabel+' — '+(S.selectedAgent?S.selectedAgent.nom:'Inconnu')+' — '+heure,
     type:typeLabel,horodatage:now.toISOString(),
-    agentId:S.selectedAgent.id,agentNom:S.selectedAgent.nom,
+    agentId:S.selectedAgent?S.selectedAgent.id:null,
+    agentNom:S.selectedAgent?S.selectedAgent.nom:'',
+    nomSaisi:document.getElementById('nom-input').value.trim(),
+    aVerifier:S.selectedAgent?!!S.selectedAgent.aVerifier:true,
+    verifyMethod:S.verifyMethod||null,
     prestationId:S.prestation?S.prestation.id:null,
     prestationNom:S.prestation?S.prestation.nom:null,
     siteId:S.siteId,siteName:S.siteName,
     gps:geoStr+geoStatut,
-    signature:signatureBase64
-  }).then(function(result){
+    signature:canvas.toDataURL('image/png')
+  }).then(function(){
     hideOverlay();
     var onSite=S.geo&&S.siteGps?distanceMetres(S.geo.lat,S.geo.lng,S.siteGps.lat,S.siteGps.lng)<=S.siteGps.rayon:true;
     document.getElementById('success-detail').innerHTML=
-      '<div class="detail-row"><span class="detail-key">Agent</span><span class="detail-val">'+S.selectedAgent.nom+'</span></div>'+
+      '<div class="detail-row"><span class="detail-key">Agent</span><span class="detail-val">'+(S.selectedAgent?S.selectedAgent.nom:document.getElementById('nom-input').value)+'</span></div>'+
       '<div class="detail-row"><span class="detail-key">Type</span><span class="badge '+(S.type==='debut'?'green':'red')+'">'+typeLabel.toUpperCase()+'</span></div>'+
       '<div class="detail-row"><span class="detail-key">Heure</span><span class="detail-val">'+heure+'</span></div>'+
       (S.prestation?'<div class="detail-row"><span class="detail-key">Prestation</span><span class="detail-val">'+S.prestation.nom+'</span></div>':'')+
       '<div class="detail-row"><span class="detail-key">Position</span><span class="badge '+(onSite?'green':'orange')+'">'+(onSite?'✓ SUR SITE':'⚠ HORS SITE')+'</span></div>'+
-      '<div class="detail-row"><span class="detail-key">Signature</span><span class="detail-val" style="color:#5DCAA5">✓ Enregistrée</span></div>';
+      '<div class="detail-row"><span class="detail-key">Signature</span><span class="detail-val" style="color:#5DCAA5">✓ Enregistrée</span></div>'+
+      (S.selectedAgent&&S.selectedAgent.aVerifier?'<div class="detail-row"><span class="detail-key">Statut</span><span class="badge orange">⚠ À vérifier</span></div>':'');
     showScreen('screen-success');
   }).catch(function(){hideOverlay();alert('Erreur de connexion. Réessayez.');});
 }
 
 function resetForm(){
-  S.selectedAgent=null;S.prestation=null;S.sigDrawn=false;clearSig();
-  document.getElementById('search-input').value='';
-  ['sig-field','btn-submit','presta-field'].forEach(function(id){document.getElementById(id).style.display='none';});
-  document.getElementById('check-alert').className='alert danger';
-  document.getElementById('sig-alert').className='alert danger';
-  selectType(S.type);renderAgents(S.agents);showScreen('screen-form');
+  S.selectedAgent=null;S.prestation=null;S.sigDrawn=false;S.verifyAttempts=0;S.verifyMethod=null;
+  clearSig();
+  document.getElementById('nom-input').value='';
+  ['verify-field','sig-field','btn-submit','presta-field','homonyme-field'].forEach(function(id){document.getElementById(id).style.display='none';});
+  ['nom-error','check-alert','verify-error','sig-alert'].forEach(function(id){document.getElementById(id).className='alert danger';});
+  document.getElementById('verify-ok').className='alert success';
+  document.getElementById('cnaps-input').value='';document.getElementById('dob-input').value='';
+  document.getElementById('cnaps-input').className='';document.getElementById('dob-input').className='';
+  selectType('debut');showScreen('screen-form');
 }
+
+function showErr(id,msg){var el=document.getElementById(id);el.textContent=msg;el.className=(el.className.indexOf('warn')>-1?'alert warn':'alert danger')+' show';}
+function hideErr(id){document.getElementById(id).className='alert danger';}
 function showScreen(id){['screen-form','screen-success','screen-blocked'].forEach(function(s){document.getElementById(s).classList.toggle('active',s===id);});}
 function showOverlay(msg){document.getElementById('overlay-msg').textContent=msg;document.getElementById('overlay').className='overlay show';}
 function hideOverlay(){document.getElementById('overlay').className='overlay';}

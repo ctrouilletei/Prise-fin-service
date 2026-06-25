@@ -368,6 +368,16 @@ function updateStats(){
   if(verifCount>0){badge.style.display='inline-block';badge.textContent=verifCount;}else{badge.style.display='none';}
 }
 
+function getNonAffectes(prestaId, siteId){
+  // Pointages dont le siteId correspond mais sans prestationId, ou prestationId différent
+  return D.pointages.filter(function(p){
+    if(p.siteId!==siteId)return false;
+    if(p.prestationId===prestaId)return false;
+    if(p.type!=='Début de service')return false;
+    return true;
+  });
+}
+
 function setFilter(f,btn){D.filter=f;document.querySelectorAll('#tab-today .filter-btn').forEach(function(b){b.classList.remove('active');});btn.classList.add('active');renderToday();}
 
 function renderToday(){
@@ -384,13 +394,17 @@ function renderToday(){
   var html='<div class="grid">';
   prestas.forEach(function(pr){
     var cnt=getPointes(pr.id),tot=pr.agents.length,pct=tot>0?Math.round(cnt/tot*100):0;
+    var nonAffectes=getNonAffectes(pr.id, pr.siteId);
     var statusClass=cnt===0?'none':cnt>=tot?'ok':'partial';
     var statusLabel=cnt===0?'Aucun pointage':cnt>=tot?'Complet ✓':cnt+'/'+tot+' pointés';
-    var cardClass=cnt>=tot&&tot>0?'complete-card':'';
+    var cardClass=nonAffectes.length>0?'alert-card':cnt>=tot&&tot>0?'complete-card':'';
     var fillClass=pct<30?'red':pct<70?'orange':'';
     html+='<div class="card '+cardClass+'">';
     html+='<div class="card-head"><div><div class="card-site">'+escHtml(pr.site)+'</div><div class="card-presta">'+escHtml(pr.nom)+'</div></div>';
-    html+='<span class="badge '+statusClass+'">'+statusLabel+'</span></div>';
+    html+='<div style="display:flex;gap:4px;flex-direction:column;align-items:flex-end;">';
+    html+='<span class="badge '+statusClass+'">'+statusLabel+'</span>';
+    if(nonAffectes.length>0)html+='<span class="badge alert">⚠ '+nonAffectes.length+' non affecté'+(nonAffectes.length>1?'s':'')+'</span>';
+    html+='</div></div>';
     html+='<div class="card-body">';
     html+='<div class="prog-row"><div class="prog-bar"><div class="prog-fill '+fillClass+'" style="width:'+pct+'%"></div></div><div class="prog-txt">'+pct+'%</div></div>';
     if(tot<=12){
@@ -400,11 +414,18 @@ function renderToday(){
         var ini=a.nom.split(' ').slice(-1)[0];
         html+='<div class="chip '+(pointed?'ok':'missing')+'">'+escHtml(ini)+'</div>';
       });
+      // Affiche aussi les agents non affectés
+      nonAffectes.forEach(function(p){
+        var nom=p.agentNom||p.nomSaisi||'?';
+        var ini=nom.split(' ').slice(-1)[0];
+        html+='<div class="chip" style="background:rgba(232,131,58,.15);border-color:rgba(232,131,58,.35);color:#E8833A;" title="Agent non affecté: '+escHtml(nom)+'">⚠ '+escHtml(ini)+'</div>';
+      });
       html+='</div>';
     }
     html+='<div class="card-meta"><span>👥 '+tot+' agents</span>';
     var debut=D.pointages.filter(function(p){return p.prestationId===pr.id&&p.type==='Début de service';}).sort(function(a,b){return new Date(a.horodatage)-new Date(b.horodatage);});
     if(debut.length){html+='<span>🟢 Premier à '+new Date(debut[0].horodatage).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})+'</span>';}
+    if(nonAffectes.length>0)html+='<span style="color:#E8833A">⚠ '+nonAffectes.length+' agent'+(nonAffectes.length>1?'s':'')+' non affecté'+(nonAffectes.length>1?'s':'')+'</span>';
     html+='</div></div>';
     html+='<div class="card-foot"><button class="btn-qr" onclick=\'showQR('+JSON.stringify(pr).replace(/'/g,"&#39;")+')\'>⬛ QR Code</button><button class="btn-detail" onclick=\'showDetail('+JSON.stringify(pr).replace(/'/g,"&#39;")+')\'>Détail →</button></div>';
     html+='</div>';
@@ -555,6 +576,7 @@ function showDetail(pr){
   document.getElementById('panel-title').textContent=pr.site;
   document.getElementById('panel-sub').textContent=pr.nom+' — '+pr.agents.length+' agents';
   var pts=D.pointages.filter(function(p){return p.prestationId===pr.id;});
+  var nonAffectes=getNonAffectes(pr.id, pr.siteId);
   var html='';
   if(pts.length){
     html+='<div class="section-label">Pointages ('+pts.length+')</div>';
@@ -563,6 +585,18 @@ function showDetail(pr){
       var h=new Date(p.horodatage).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
       var tb=p.type==='Début de service'?'<span class="badge debut" style="font-size:9px;">Début</span>':'<span class="badge fin" style="font-size:9px;">Fin</span>';
       html+='<div class="p-item"><div style="display:flex;justify-content:space-between;align-items:center;"><div class="p-agent">'+escHtml(p.agentNom)+'</div>'+tb+'</div><div class="p-meta"><span>🕐 '+h+'</span></div></div>';
+    });
+  }
+  if(nonAffectes.length){
+    html+='<div class="section-label" style="color:#E8833A;">⚠ Agents non affectés ('+nonAffectes.length+')</div>';
+    html+='<div style="font-family:DM Mono,monospace;font-size:10px;color:var(--gray);margin-bottom:6px;font-style:italic;">Ces agents ont pointé sur ce site mais ne sont pas dans la liste des affectés à cette prestation.</div>';
+    nonAffectes.sort(function(a,b){return new Date(a.horodatage)-new Date(b.horodatage);});
+    nonAffectes.forEach(function(p){
+      var h=new Date(p.horodatage).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+      var tb=p.type==='Début de service'?'<span class="badge debut" style="font-size:9px;">Début</span>':'<span class="badge fin" style="font-size:9px;">Fin</span>';
+      html+='<div class="p-item" style="border-color:rgba(232,131,58,.3);background:rgba(232,131,58,.06);"><div style="display:flex;justify-content:space-between;align-items:center;"><div class="p-agent" style="color:#E8833A;">⚠ '+escHtml(p.agentNom||p.nomSaisi||'?')+'</div>'+tb+'</div><div class="p-meta"><span>🕐 '+h+'</span>';
+      if(p.notionUrl)html+='<a href="'+p.notionUrl+'" target="_blank" style="color:#E8833A;text-decoration:none;">Notion →</a>';
+      html+='</div></div>';
     });
   }
   var pointedIds=new Set(pts.filter(function(p){return p.type==='Début de service';}).map(function(p){return p.agentId;}));

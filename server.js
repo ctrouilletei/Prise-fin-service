@@ -307,8 +307,9 @@ var server = http.createServer(function(req, res) {
       function createPage(sigUrl){
         var heureFmt=now.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit',timeZone:'Europe/Paris'});
         var statutVerif='✅ Vérifié';
-        if(d.aVerifier && !d.agentId) statutVerif='⚠️ À vérifier'; // Agent inconnu
-        else if(d.aVerifier && d.agentId) statutVerif='⚠️ Non affecté'; // Agent connu mais pas sur la prestation
+        if(d.identiteNonVerifiee) statutVerif='🔴 Identité non vérifiée';
+        else if(d.aVerifier && !d.agentId) statutVerif='⚠️ À vérifier';
+        else if(d.aVerifier && d.agentId) statutVerif='⚠️ Non affecté';
         else if(d.verifyMethod==='DATE_NAISSANCE') statutVerif='✅ Vérifié naissance';
         else if(d.verifyMethod==='CNAPS') statutVerif='✅ Vérifié CNAPS';
         var props={'Nom':{title:[{text:{content:d.nom}}]},'Type':{select:{name:d.type}},'Horodatage':{date:{start:now.toISOString()}},'GPS':{rich_text:[{text:{content:d.gps||'Non disponible'}}]},'Statut vacation':{select:{name:d.type==='Début de service'?'En poste':'Terminé'}},'Statut vérification':{select:{name:statutVerif}}};

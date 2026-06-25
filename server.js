@@ -285,6 +285,22 @@ var server = http.createServer(function(req, res) {
     return;
   }
 
+  // ── POST /api/superviseur/validate ────────────────────────────────────────
+  if(req.method==='POST'&&pathname==='/api/superviseur/validate'){
+    var body='';req.on('data',function(c){body+=c;});req.on('end',function(){
+      var d;try{d=JSON.parse(body);}catch(e){res.writeHead(400);res.end('Bad request');return;}
+      if(!d.pageId||!d.action){res.writeHead(400,{'Content-Type':'application/json'});res.end(JSON.stringify({error:'pageId et action requis'}));return;}
+      var newStatut=d.action==='validate'?'✅ Vérifié manuellement':'❌ Rejeté';
+      notionRequest('PATCH','pages/'+d.pageId,{
+        properties:{'Statut vérification':{select:{name:newStatut}}}
+      }).then(function(result){
+        if(result.object==='error'){res.writeHead(500,{'Content-Type':'application/json'});res.end(JSON.stringify({error:result.message}));}
+        else{res.writeHead(200,{'Content-Type':'application/json'});res.end(JSON.stringify({success:true,statut:newStatut}));}
+      }).catch(function(e){res.writeHead(500,{'Content-Type':'application/json'});res.end(JSON.stringify({error:e.message}));});
+    });
+    return;
+  }
+
   // ── POST /api/pointage ───────────────────────────────────────────────────
   if(req.method==='POST'&&pathname==='/api/pointage'){
     var body='';req.on('data',function(c){body+=c;});req.on('end',function(){

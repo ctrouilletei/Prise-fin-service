@@ -9,7 +9,7 @@
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{--gold:#C9A84C;--gold-dim:rgba(201,168,76,.12);--gold-border:rgba(201,168,76,.3);--black:#080808;--dark:#111;--dark2:#181818;--dark3:#222;--dark4:#2A2A2A;--gray:#666;--gray2:#444;--white:#F0EDE6;--red:#E24B4A;--green:#1D9E75;--orange:#E8833A;--radius:10px;--radius-sm:6px;}
-html,body{min-height:100vh;background:var(--black);font-family:'Syne',sans-serif;color:var(--white);padding-bottom:75px;}
+html,body{min-height:100vh;background:var(--black);font-family:'Syne',sans-serif;color:var(--white);}
 
 .login-screen{position:fixed;inset:0;background:var(--black);display:flex;align-items:center;justify-content:center;z-index:1000;}
 .login-box{background:var(--dark);border:1px solid var(--dark3);border-radius:var(--radius);padding:40px;width:360px;display:flex;flex-direction:column;gap:24px;}
@@ -179,15 +179,14 @@ tr:hover td{background:var(--dark2);}
 .p-missing{opacity:.45;}
 .section-label{font-family:'DM Mono',monospace;font-size:10px;color:var(--gray);text-transform:uppercase;letter-spacing:.1em;margin:14px 0 6px;}
 
-/* BOTTOM NAV MOBILE */
-.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:var(--dark);border-top:2px solid var(--dark3);z-index:300;padding:8px 0 env(safe-area-inset-bottom, 8px);}
-.bottom-nav-inner{display:flex;justify-content:space-around;align-items:center;max-width:500px;margin:0 auto;}
-.bnav-item{display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 6px;cursor:pointer;color:var(--gray);transition:color .15s;position:relative;min-width:0;flex:1;-webkit-tap-highlight-color:transparent;}
-.bnav-item.active{color:var(--gold);}
-.bnav-item.active .bnav-label{color:var(--gold);}
-.bnav-icon{font-size:22px;line-height:1;}
-.bnav-label{font-family:'DM Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;text-align:center;color:inherit;}
-.bnav-badge{position:absolute;top:0;right:calc(50% - 20px);background:var(--red);color:#fff;border-radius:8px;padding:1px 5px;font-family:'DM Mono',monospace;font-size:9px;font-weight:bold;min-width:16px;text-align:center;line-height:16px;}
+/* NAV BUTTONS - inline, no position:fixed */
+.nav-btns{display:flex;gap:2px;padding:2px;background:var(--dark3);overflow-x:auto;-webkit-overflow-scrolling:touch;}
+.nav-btn{flex:1;min-width:0;background:var(--dark2);border:none;color:var(--gray);font-family:'DM Mono',monospace;font-size:11px;padding:14px 8px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;transition:all .15s;position:relative;-webkit-tap-highlight-color:transparent;}
+.nav-btn.active{background:var(--dark);color:var(--gold);}
+.nav-btn:hover{color:var(--white);}
+.nav-btn-icon{font-size:20px;line-height:1;}
+.nav-btn-label{font-size:9px;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;}
+.nav-btn-badge{position:absolute;top:6px;right:calc(50% - 18px);background:var(--red);color:#fff;border-radius:8px;padding:1px 5px;font-family:'DM Mono',monospace;font-size:9px;font-weight:bold;min-width:16px;text-align:center;line-height:16px;}
 
 /* RESPONSIVE MOBILE / TABLET */
 @media(max-width:1024px){
@@ -205,7 +204,7 @@ tr:hover td{background:var(--dark2);}
   .stat-val{font-size:20px;}
   .stat-label{font-size:8px;}
 
-  /* bottom nav already visible by default */
+  /* nav buttons already visible in page flow */
 
   .main{padding:14px 12px;gap:12px;}
 
@@ -331,6 +330,15 @@ tr:hover td{background:var(--dark2);}
     <div class="tab" onclick="switchTab('upcoming',this)">Missions à venir</div>
   </div>
 
+  <!-- NAVIGATION - boutons inline -->
+  <div class="nav-btns" id="nav-btns">
+    <button class="nav-btn active" onclick="switchTab2('today',this)"><span class="nav-btn-icon">📋</span><span class="nav-btn-label">Prestas</span></button>
+    <button class="nav-btn" onclick="switchTab2('timeline',this)"><span class="nav-btn-icon">⏱</span><span class="nav-btn-label">Timeline</span></button>
+    <button class="nav-btn" onclick="switchTab2('verif',this)"><span class="nav-btn-icon">🚨</span><span class="nav-btn-label">Alertes</span><span class="nav-btn-badge" id="nav-verif-badge" style="display:none;">0</span></button>
+    <button class="nav-btn" onclick="switchTab2('history',this)"><span class="nav-btn-icon">📅</span><span class="nav-btn-label">Histo.</span></button>
+    <button class="nav-btn" onclick="switchTab2('upcoming',this)"><span class="nav-btn-icon">🔮</span><span class="nav-btn-label">À venir</span></button>
+  </div>
+
   <div class="main">
 
     <!-- TODAY (vue prestations) -->
@@ -392,17 +400,6 @@ tr:hover td{background:var(--dark2);}
   </div>
 </div>
 
-<!-- BOTTOM NAV MOBILE - en dehors de .app pour éviter les bugs iOS -->
-<div class="bottom-nav" id="bottom-nav" style="display:none;">
-  <div class="bottom-nav-inner">
-    <div class="bnav-item active" onclick="switchTabMobile('today',this)"><span class="bnav-icon">📋</span><span class="bnav-label">Prestas</span></div>
-    <div class="bnav-item" onclick="switchTabMobile('timeline',this)"><span class="bnav-icon">⏱</span><span class="bnav-label">Timeline</span></div>
-    <div class="bnav-item" onclick="switchTabMobile('verif',this)"><span class="bnav-icon">🚨</span><span class="bnav-label">Alertes</span><span class="bnav-badge" id="bnav-verif-badge" style="display:none;">0</span></div>
-    <div class="bnav-item" onclick="switchTabMobile('history',this)"><span class="bnav-icon">📅</span><span class="bnav-label">Histo.</span></div>
-    <div class="bnav-item" onclick="switchTabMobile('upcoming',this)"><span class="bnav-icon">🔮</span><span class="bnav-label">À venir</span></div>
-  </div>
-</div>
-
 <div class="overlay" id="qr-modal">
   <div class="modal">
     <div class="modal-hdr">
@@ -449,7 +446,7 @@ function checkSession() {
     D.supervisor = session.nom;
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('app').classList.add('show');
-    document.getElementById('bottom-nav').style.display = 'block';
+    
     document.getElementById('hdr-user').textContent = session.nom;
     init();
     return true;
@@ -475,7 +472,7 @@ function doLogin() {
       saveSession(data.nom);
       document.getElementById('login-screen').style.display='none';
       document.getElementById('app').classList.add('show');
-      document.getElementById('bottom-nav').style.display='block';
+      
       document.getElementById('hdr-user').textContent=data.nom;
       init();
     } else{document.getElementById('login-error').classList.add('show');document.getElementById('login-input').value='';}
@@ -486,7 +483,7 @@ function logout(){
   try { localStorage.removeItem(SESSION_KEY); } catch(e) {}
   document.getElementById('login-screen').style.display='flex';
   document.getElementById('app').classList.remove('show');
-  document.getElementById('bottom-nav').style.display='none';
+  
   document.getElementById('login-input').value='';
   D.supervisor=null;
 }
@@ -536,13 +533,13 @@ function updateStats(){
   document.getElementById('s-taux').textContent=totalA>0?Math.round(totalP/totalA*100)+'%':'—';
   document.getElementById('s-verif').textContent=verifCount;
   var badge=document.getElementById('tab-verif-badge');
-  var bnavBadge=document.getElementById('bnav-verif-badge');
+  var navBadge=document.getElementById('nav-verif-badge');
   if(verifCount>0){
     badge.style.display='inline-block';badge.textContent=verifCount;
-    if(bnavBadge){bnavBadge.style.display='block';bnavBadge.textContent=verifCount;}
+    if(navBadge){navBadge.style.display='block';navBadge.textContent=verifCount;}
   }else{
     badge.style.display='none';
-    if(bnavBadge)bnavBadge.style.display='none';
+    if(navBadge)navBadge.style.display='none';
   }
 }
 
@@ -787,35 +784,20 @@ function showUpcomingDetail(pr){
   document.getElementById('panel').classList.add('open');
 }
 
-function switchTab(id,btn){
+function switchTab(id,btn){switchTab2(id,btn);}
+
+function switchTab2(id,btn){
   document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active');});
+  document.querySelectorAll('.nav-btn').forEach(function(t){t.classList.remove('active');});
   document.querySelectorAll('.tab-content').forEach(function(t){t.classList.remove('active');});
-  document.querySelectorAll('.bnav-item').forEach(function(t){t.classList.remove('active');});
-  btn.classList.add('active');
+  if(btn)btn.classList.add('active');
   document.getElementById('tab-'+id).classList.add('active');
-  // Sync bottom nav
-  var bnavItems=document.querySelectorAll('.bnav-item');
-  var tabMap={today:0,timeline:1,verif:2,history:3,upcoming:4};
-  if(tabMap[id]!==undefined&&bnavItems[tabMap[id]])bnavItems[tabMap[id]].classList.add('active');
   if(id==='history')loadHistory();
   if(id==='upcoming')loadUpcoming();
   if(id==='today'||id==='timeline'||id==='verif')loadToday();
 }
 
-function switchTabMobile(id,btn){
-  document.querySelectorAll('.bnav-item').forEach(function(t){t.classList.remove('active');});
-  document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active');});
-  document.querySelectorAll('.tab-content').forEach(function(t){t.classList.remove('active');});
-  btn.classList.add('active');
-  document.getElementById('tab-'+id).classList.add('active');
-  // Sync desktop tabs
-  var tabs=document.querySelectorAll('.tab');
-  var tabMap={today:0,timeline:1,verif:2,history:3,upcoming:4};
-  if(tabMap[id]!==undefined&&tabs[tabMap[id]])tabs[tabMap[id]].classList.add('active');
-  if(id==='history')loadHistory();
-  if(id==='upcoming')loadUpcoming();
-  if(id==='today'||id==='timeline'||id==='verif')loadToday();
-}
+function switchTabMobile(id,btn){switchTab2(id,btn);}
 
 function showQR(pr){
   var qrUrl=APP_URL+'?site='+pr.siteId+'&nom='+encodeURIComponent(pr.site);

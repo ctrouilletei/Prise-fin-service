@@ -92,7 +92,31 @@ var server = http.createServer(function(req, res) {
     return;
   }
 
-  // ── GET /api/agents ─────────────────────────────────────────────────────
+  // ── GET /api/agent/search?nom=NOM ────────────────────────────────────────
+  if(req.method==='GET'&&pathname==='/api/agent/search'){
+    var p5=new URLSearchParams(parsed.query||''),nomRecherche=p5.get('nom')||'';
+    var norm=function(s){return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();};
+    var normNom=norm(nomRecherche);
+    // Cherche dans toute la base agents
+    var allA=[];
+    function searchPage(cur){
+      var body={page_size:100};if(cur)body.start_cursor=cur;
+      notionRequest('POST','databases/'+AGENTS_DB+'/query',body).then(function(result){
+        (result.results||[]).forEach(function(p){
+          var nom=p.properties['Nom']&&p.properties['Nom'].title&&p.properties['Nom'].title[0]?p.properties['Nom'].title[0].plain_text:'';
+          var cp=p.properties['Carte Pro']&&p.properties['Carte Pro'].rich_text&&p.properties['Carte Pro'].rich_text[0]?p.properties['Carte Pro'].rich_text[0].plain_text:'';
+          var dn=p.properties['Date de naissance']&&p.properties['Date de naissance'].date?p.properties['Date de naissance'].date.start:'';
+          if(nom&&norm(nom)===normNom)allA.push({id:p.id,nom:nom,cartePro:cp,dateNaissance:dn});
+        });
+        if(result.has_more&&result.next_cursor){searchPage(result.next_cursor);}
+        else{res.writeHead(200,{'Content-Type':'application/json'});res.end(JSON.stringify({agents:allA}));}
+      }).catch(function(e){res.writeHead(500,{'Content-Type':'application/json'});res.end(JSON.stringify({error:e.message,agents:[]}));});
+    }
+    searchPage(null);
+    return;
+  }
+
+
   if(req.method==='GET'&&pathname==='/api/agents'){
     var params=new URLSearchParams(parsed.query||''),siteId=params.get('site'),today=new Date().toISOString().split('T')[0];
     if(siteId){
@@ -105,7 +129,7 @@ var server = http.createServer(function(req, res) {
         var ids=Object.keys(agentMap);if(!ids.length){res.writeHead(200,{'Content-Type':'application/json'});res.end(JSON.stringify({agents:[],siteGps:siteGps}));return;}
         var batches=[],i;for(i=0;i<ids.length;i+=10)batches.push(ids.slice(i,i+10));
         var all=[],done=0;
-        batches.forEach(function(batch){Promise.all(batch.map(function(id){return notionRequest('GET','pages/'+id,null);})).then(function(pages){pages.forEach(function(p){if(!p||!p.properties)return;var nom=p.properties['Nom']&&p.properties['Nom'].title&&p.properties['Nom'].title[0]?p.properties['Nom'].title[0].plain_text:'';if(!nom)return;var pr=agentMap[p.id]||{};all.push({id:p.id,nom:nom,prestationId:pr.prestationId,prestationNom:pr.prestationNom});});done++;if(done===batches.length){all.sort(function(a,b){return a.nom.localeCompare(b.nom);});res.writeHead(200,{'Content-Type':'application/json'});res.end(JSON.stringify({agents:all,siteGps:siteGps}));}}).catch(function(){done++;if(done===batches.length){res.writeHead(200,{'Content-Type':'application/json'});res.end(JSON.stringify({agents:all,siteGps:siteGps}));}});});
+        batches.forEach(function(batch){Promise.all(batch.map(function(id){return notionRequest('GET','pages/'+id,null);})).then(function(pages){pages.forEach(function(p){if(!p||!p.properties)return;var nom=p.properties['Nom']&&p.properties['Nom'].title&&p.properties['Nom'].title[0]?p.properties['Nom'].title[0].plain_text:'';if(!nom)return;var cp=p.properties['Carte Pro']&&p.properties['Carte Pro'].rich_text&&p.properties['Carte Pro'].rich_text[0]?p.properties['Carte Pro'].rich_text[0].plain_text:'';var dn=p.properties['Date de naissance']&&p.properties['Date de naissance'].date?p.properties['Date de naissance'].date.start:'';var pr=agentMap[p.id]||{};all.push({id:p.id,nom:nom,cartePro:cp,dateNaissance:dn,prestationId:pr.prestationId,prestationNom:pr.prestationNom});});done++;if(done===batches.length){all.sort(function(a,b){return a.nom.localeCompare(b.nom);});res.writeHead(200,{'Content-Type':'application/json'});res.end(JSON.stringify({agents:all,siteGps:siteGps}));}}).catch(function(){done++;if(done===batches.length){res.writeHead(200,{'Content-Type':'application/json'});res.end(JSON.stringify({agents:all,siteGps:siteGps}));}});});
       }).catch(function(e){res.writeHead(500,{'Content-Type':'application/json'});res.end(JSON.stringify({error:e.message,agents:[]}));});
     } else {
       var all=[];function fetchPage(cur){var body={page_size:100};if(cur)body.start_cursor=cur;notionRequest('POST','databases/'+AGENTS_DB+'/query',body).then(function(result){(result.results||[]).forEach(function(p){var nom=p.properties['Nom']&&p.properties['Nom'].title&&p.properties['Nom'].title[0]?p.properties['Nom'].title[0].plain_text:'';if(nom)all.push({id:p.id,nom:nom});});if(result.has_more&&result.next_cursor){fetchPage(result.next_cursor);}else{all.sort(function(a,b){return a.nom.localeCompare(b.nom);});res.writeHead(200,{'Content-Type':'application/json'});res.end(JSON.stringify({agents:all,siteGps:null}));}}).catch(function(e){res.writeHead(500,{'Content-Type':'application/json'});res.end(JSON.stringify({error:e.message,agents:[]}));});}
@@ -191,7 +215,10 @@ var server = http.createServer(function(req, res) {
       var now=new Date(d.horodatage||new Date());
       function createPage(sigUrl){
         var heureFmt=now.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit',timeZone:'Europe/Paris'});
-        var props={'Nom':{title:[{text:{content:d.nom}}]},'Type':{select:{name:d.type}},'Horodatage':{date:{start:now.toISOString()}},'Agent':{relation:[{id:formatId(d.agentId)}]},'GPS':{rich_text:[{text:{content:d.gps||'Non disponible'}}]},'Statut vacation':{select:{name:d.type==='Début de service'?'En poste':'Terminé'}}};
+        var statutVerif=d.aVerifier?'⚠️ À vérifier':d.verifyMethod==='CNAPS'?'✅ Vérifié CNAPS':d.verifyMethod==='DATE_NAISSANCE'?'✅ Vérifié naissance':'✅ Vérifié';
+        var props={'Nom':{title:[{text:{content:d.nom}}]},'Type':{select:{name:d.type}},'Horodatage':{date:{start:now.toISOString()}},'GPS':{rich_text:[{text:{content:d.gps||'Non disponible'}}]},'Statut vacation':{select:{name:d.type==='Début de service'?'En poste':'Terminé'}},'Statut vérification':{select:{name:statutVerif}}};
+        if(d.agentId)props['Agent']={relation:[{id:formatId(d.agentId)}]};
+        if(d.nomSaisi)props['Nom saisi']={rich_text:[{text:{content:d.nomSaisi}}]};
         if(d.type==='Début de service')props['🟢 Heure début']={rich_text:[{text:{content:heureFmt}}]};
         if(d.type==='Fin de service')props['🔴 Heure de fin']={rich_text:[{text:{content:heureFmt}}]};
         var page={parent:{database_id:POINTAGES_DB},properties:props};

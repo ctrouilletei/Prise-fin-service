@@ -74,6 +74,9 @@ canvas{width:100%;height:130px;display:block;background:#fff;border-radius:4px;t
 .btn-submit{width:100%;background:var(--gold);color:var(--black);border:none;border-radius:var(--radius);padding:15px;font-family:'Syne',sans-serif;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .2s}
 .btn-submit:hover{background:#D4A940}
 .btn-submit:disabled{opacity:.35;cursor:not-allowed}
+.btn-bypass{width:100%;background:rgba(226,75,74,.1);border:1px solid rgba(226,75,74,.3);border-radius:var(--radius-sm);padding:12px;font-family:'Syne',sans-serif;font-size:13px;color:#F09595;cursor:pointer;transition:all .2s;margin-top:6px;display:none;}
+.btn-bypass:hover{background:rgba(226,75,74,.2);}
+.btn-bypass.show{display:block;}
 .btn-search{width:100%;background:var(--dark2);border:1px solid var(--dark3);border-radius:var(--radius);padding:13px;font-family:'Syne',sans-serif;font-size:14px;font-weight:500;color:var(--white);cursor:pointer;transition:all .2s}
 .btn-search:hover{border-color:var(--gold);color:var(--gold)}
 .screen{display:none}
@@ -179,6 +182,7 @@ canvas{width:100%;height:130px;display:block;background:#fff;border-radius:4px;t
           </div>
           <div class="alert danger" id="verify-error"></div>
           <div class="alert success" id="verify-ok">✓ Identité confirmée</div>
+          <button class="btn-bypass" id="btn-bypass" onclick="bypassVerify()" style="display:none">❓ Je ne peux pas me vérifier — Pointer sans vérification</button>
         </div>
       </div>
 
@@ -452,7 +456,6 @@ function onVerify(){
   // Vérification date de naissance (JJ/MM)
   if(dob.length>=4&&agent.dateNaissance){
     var dobClean=dob.replace(/[^0-9]/g,'');
-    // Extrait JJ et MM de la date de naissance (format YYYY-MM-DD)
     var parts=agent.dateNaissance.split('-');
     if(parts.length>=3){
       var expected=parts[2]+parts[1];// JJMM
@@ -465,17 +468,30 @@ function onVerify(){
     document.getElementById('verify-error').className='alert danger';
     document.getElementById('verify-ok').className='alert success show';
     document.getElementById('dob-input').className='ok';
+    document.getElementById('btn-bypass').style.display='none';
     showSig();
   } else if(dob.length>=4){
     S.verifyAttempts++;
     if(S.verifyAttempts>=MAX_VERIFY){
-      showErr('verify-error','3 tentatives incorrectes. Contactez votre coordinateur.');
-      document.getElementById('btn-submit').style.display='none';
+      showErr('verify-error','3 tentatives incorrectes. Vous pouvez pointer sans vérification, votre coordinateur sera alerté.');
+      document.getElementById('btn-bypass').style.display='block';
     } else {
       var r=MAX_VERIFY-S.verifyAttempts;
       showErr('verify-error','Date incorrecte — '+r+' tentative'+(r>1?'s':'')+' restante'+(r>1?'s':''));
+      // Affiche aussi le bouton bypass dès la 2ème tentative
+      if(S.verifyAttempts>=2) document.getElementById('btn-bypass').style.display='block';
     }
   }
+}
+
+function bypassVerify(){
+  S.verifyMethod='NON_VERIFIE';
+  if(S.selectedAgent) S.selectedAgent.identiteNonVerifiee=true;
+  document.getElementById('verify-error').className='alert danger';
+  var warn=document.getElementById('verify-ok');
+  warn.textContent='⚠ Pointage sans vérification — votre coordinateur sera alerté';
+  warn.className='alert warn show';
+  showSig();
 }
 
 function showSig(){
@@ -511,6 +527,7 @@ function submitForm(){
     agentNom:S.selectedAgent?S.selectedAgent.nom:'',
     nomSaisi:document.getElementById('nom-input').value.trim(),
     aVerifier:S.selectedAgent?!!S.selectedAgent.aVerifier:true,
+    identiteNonVerifiee:S.selectedAgent?!!S.selectedAgent.identiteNonVerifiee:false,
     verifyMethod:S.verifyMethod||null,
     prestationId:S.prestation?S.prestation.id:null,
     prestationNom:S.prestation?S.prestation.nom:null,
@@ -527,7 +544,8 @@ function submitForm(){
       (S.prestation?'<div class="detail-row"><span class="detail-key">Prestation</span><span class="detail-val">'+S.prestation.nom+'</span></div>':'')+
       '<div class="detail-row"><span class="detail-key">Position</span><span class="badge '+(onSite?'green':'orange')+'">'+(onSite?'✓ SUR SITE':'⚠ HORS SITE')+'</span></div>'+
       '<div class="detail-row"><span class="detail-key">Signature</span><span class="detail-val" style="color:#5DCAA5">✓ Enregistrée</span></div>'+
-      (S.selectedAgent&&S.selectedAgent.aVerifier?'<div class="detail-row"><span class="detail-key">Statut</span><span class="badge orange">⚠ À vérifier</span></div>':'');
+      (S.selectedAgent&&S.selectedAgent.aVerifier?'<div class="detail-row"><span class="detail-key">Statut</span><span class="badge orange">⚠ À vérifier</span></div>':'')+
+      (S.selectedAgent&&S.selectedAgent.identiteNonVerifiee?'<div class="detail-row"><span class="detail-key">Statut</span><span class="badge red">🔴 Non vérifié</span></div>':'');
     showScreen('screen-success');
   }).catch(function(){hideOverlay();alert('Erreur de connexion. Réessayez.');});
 }
@@ -541,6 +559,7 @@ function resetForm(){
   document.getElementById('verify-ok').className='alert success';
   document.getElementById('dob-input').value='';
   document.getElementById('dob-input').className='';
+  document.getElementById('btn-bypass').style.display='none';
   selectType('debut');showScreen('screen-form');
 }
 

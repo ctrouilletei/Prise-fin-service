@@ -176,9 +176,44 @@ var server = http.createServer(function(req, res) {
     var beforeDate=dateEnd?dateEnd+'T23:59:59.000Z':null;
     var filter=beforeDate?{and:[{property:'Horodatage',date:{on_or_after:afterDate}},{property:'Horodatage',date:{on_or_before:beforeDate}}]}:{property:'Horodatage',date:{on_or_after:afterDate}};
     notionRequest('POST','databases/'+POINTAGES_DB+'/query',{filter:filter,page_size:200}).then(function(result){
-      // Pour chaque pointage, récupère les infos du site pour calculer la distance
-      var pointages=(result.results||[]).map(function(p){var props=p.properties;var agentRel=props['Agent']&&props['Agent'].relation?props['Agent'].relation:[];var prestaRel=props['Prestation']&&props['Prestation'].relation?props['Prestation'].relation:[];var siteRel=props['Site']&&props['Site'].relation?props['Site'].relation:[];var nomTitle=props['Nom']&&props['Nom'].title&&props['Nom'].title[0]?props['Nom'].title[0].plain_text:'';var parts=nomTitle.split(' — ');var gpsStr=props['GPS']&&props['GPS'].rich_text&&props['GPS'].rich_text[0]?props['GPS'].rich_text[0].plain_text:'';return{id:p.id,agentId:agentRel[0]?agentRel[0].id:null,agentNom:parts[1]||'',prestationId:prestaRel[0]?prestaRel[0].id:null,siteId:siteRel[0]?siteRel[0].id:null,type:props['Type']&&props['Type'].select?props['Type'].select.name:'',horodatage:props['Horodatage']&&props['Horodatage'].date?props['Horodatage'].date.start:'',gps:gpsStr,horsSite:false,distance:null,siteName:''};});
-      res.writeHead(200,{'Content-Type':'application/json'});res.end(JSON.stringify({pointages:pointages}));
+      // Pour chaque pointage, récupère les infos enrichies
+      var pointagesRaw=(result.results||[]).map(function(p){
+        var props=p.properties;
+        var agentRel=props['Agent']&&props['Agent'].relation?props['Agent'].relation:[];
+        var prestaRel=props['Prestation']&&props['Prestation'].relation?props['Prestation'].relation:[];
+        var siteRel=props['Site']&&props['Site'].relation?props['Site'].relation:[];
+        var nomTitle=props['Nom']&&props['Nom'].title&&props['Nom'].title[0]?props['Nom'].title[0].plain_text:'';
+        var parts=nomTitle.split(' — ');
+        var gpsStr=props['GPS']&&props['GPS'].rich_text&&props['GPS'].rich_text[0]?props['GPS'].rich_text[0].plain_text:'';
+        var nomSaisi=props['Nom saisi']&&props['Nom saisi'].rich_text&&props['Nom saisi'].rich_text[0]?props['Nom saisi'].rich_text[0].plain_text:'';
+        var statutVerif=props['Statut vérification']&&props['Statut vérification'].select?props['Statut vérification'].select.name:'';
+        return{
+          id:p.id,
+          notionUrl:p.url,
+          agentId:agentRel[0]?agentRel[0].id:null,
+          agentNom:parts[1]||'',
+          nomSaisi:nomSaisi,
+          prestationId:prestaRel[0]?prestaRel[0].id:null,
+          siteId:siteRel[0]?siteRel[0].id:null,
+          siteName:'',
+          type:props['Type']&&props['Type'].select?props['Type'].select.name:'',
+          horodatage:props['Horodatage']&&props['Horodatage'].date?props['Horodatage'].date.start:'',
+          gps:gpsStr,
+          statutVerif:statutVerif,
+          horsSite:false,
+          distance:null
+        };
+      });
+      // Récupère les noms des sites en parallèle
+      var siteIds=[...new Set(pointagesRaw.map(function(p){return p.siteId;}).filter(Boolean))];
+      Promise.all(siteIds.map(function(id){return notionRequest('GET','pages/'+id,null);})).then(function(sitePages){
+        var siteMap={};
+        sitePages.forEach(function(s){if(s&&s.id)siteMap[s.id]=s.properties&&s.properties['Nom']&&s.properties['Nom'].title&&s.properties['Nom'].title[0]?s.properties['Nom'].title[0].plain_text:'';});
+        pointagesRaw.forEach(function(p){if(p.siteId)p.siteName=siteMap[p.siteId]||'';});
+        res.writeHead(200,{'Content-Type':'application/json'});res.end(JSON.stringify({pointages:pointagesRaw}));
+      }).catch(function(){
+        res.writeHead(200,{'Content-Type':'application/json'});res.end(JSON.stringify({pointages:pointagesRaw}));
+      });
     }).catch(function(e){res.writeHead(500,{'Content-Type':'application/json'});res.end(JSON.stringify({error:e.message,pointages:[]}));});
     return;
   }

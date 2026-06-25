@@ -179,8 +179,20 @@ tr:hover td{background:var(--dark2);}
 .p-missing{opacity:.45;}
 .section-label{font-family:'DM Mono',monospace;font-size:10px;color:var(--gray);text-transform:uppercase;letter-spacing:.1em;margin:14px 0 6px;}
 
+/* BOTTOM NAV MOBILE */
+.bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--dark);border-top:1px solid var(--dark3);z-index:300;padding:6px 0 env(safe-area-inset-bottom, 6px);}
+.bottom-nav-inner{display:flex;justify-content:space-around;align-items:center;}
+.bnav-item{display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 4px;cursor:pointer;color:var(--gray);transition:color .15s;position:relative;min-width:0;flex:1;}
+.bnav-item.active{color:var(--gold);}
+.bnav-item:hover{color:var(--white);}
+.bnav-icon{font-size:18px;line-height:1;}
+.bnav-label{font-family:'DM Mono',monospace;font-size:8px;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:60px;text-align:center;}
+.bnav-badge{position:absolute;top:2px;right:calc(50% - 18px);background:var(--red);color:#fff;border-radius:8px;padding:0 4px;font-family:'DM Mono',monospace;font-size:8px;font-weight:bold;min-width:14px;text-align:center;line-height:14px;}
+
 /* RESPONSIVE MOBILE / TABLET */
 @media(max-width:768px){
+  body{padding-bottom:70px;}
+
   .header{padding:12px 16px;flex-wrap:wrap;gap:10px;}
   .header-left{gap:10px;}
   .brand-logo{font-size:9px;padding:3px 8px;}
@@ -194,12 +206,13 @@ tr:hover td{background:var(--dark2);}
   .stat-val{font-size:20px;}
   .stat-label{font-size:8px;}
 
-  .tabs{padding:0 12px;overflow-x:auto;-webkit-overflow-scrolling:touch;}
-  .tab{padding:10px 12px;font-size:10px;white-space:nowrap;}
+  /* Cache les tabs desktop, affiche la bottom nav */
+  .tabs{display:none;}
+  .bottom-nav{display:block;}
 
   .main{padding:14px 12px;gap:12px;}
 
-  .toolbar{gap:6px;}
+  .toolbar{gap:6px;flex-wrap:wrap;}
   .filter-btn{font-size:9px;padding:5px 8px;}
   .search-inp{width:140px;font-size:12px;padding:6px 10px;}
   .date-inp{font-size:11px;padding:6px 8px;}
@@ -210,6 +223,8 @@ tr:hover td{background:var(--dark2);}
   .card-site{font-size:12px;}
   .card-body{padding:10px 12px;}
   .card-foot{padding:8px 12px;}
+  .btn-qr{font-size:11px;padding:9px 6px;}
+  .btn-detail{font-size:10px;padding:9px 10px;}
 
   .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
   table{min-width:600px;}
@@ -217,6 +232,8 @@ tr:hover td{background:var(--dark2);}
 
   .panel{width:100%;left:0;right:0;}
   .panel-hdr{margin-bottom:14px;}
+  .p-item{padding:10px;}
+  .p-agent{font-size:12px;}
 
   .modal{padding:20px;max-width:95%;width:95%;}
   .qr-wrap{padding:14px;}
@@ -228,20 +245,25 @@ tr:hover td{background:var(--dark2);}
   .timeline-time{font-size:13px;}
   .timeline-agent{font-size:12px;}
   .timeline-meta{font-size:9px;}
+
+  .alerts-banner{font-size:11px;padding:10px 12px;}
+  .alert-item{font-size:11px;}
 }
 
 @media(max-width:480px){
   .stats-bar{grid-template-columns:repeat(2,1fr);}
   .stat:nth-child(5){grid-column:span 2;}
 
+  .header{padding:10px 12px;}
   .header-right{flex-wrap:wrap;}
   .header-user{display:none;}
+  .brand-title{font-size:13px;}
 
-  .toolbar{gap:8px;}
+  .toolbar{gap:6px;}
   .toolbar .spacer{display:none;}
   .search-inp{width:100%;order:10;}
   .icon-btn{order:11;}
-  .filter-btn{font-size:9px;padding:5px 7px;flex-shrink:0;}
+  .filter-btn{font-size:8px;padding:4px 6px;flex-shrink:0;}
 
   .modal-btns{grid-template-columns:1fr;}
 
@@ -249,6 +271,16 @@ tr:hover td{background:var(--dark2);}
   .btn-qr,.btn-detail{width:100%;text-align:center;}
 
   .login-box{padding:24px 20px;width:92%;}
+  .login-title{font-size:19px;}
+
+  .timeline-item{grid-template-columns:50px 1fr;gap:8px;padding:8px 10px;}
+  .timeline-actions{display:none;}
+  .timeline-time{font-size:12px;}
+
+  .section-label{font-size:9px;}
+
+  .bnav-label{font-size:7px;max-width:50px;}
+  .bnav-icon{font-size:16px;}
 }
 
 @media(min-width:769px)and(max-width:1024px){
@@ -362,6 +394,17 @@ tr:hover td{background:var(--dark2);}
     <div class="tab-content" id="tab-upcoming">
       <div id="upcoming-container"><div class="loading"><div class="spinner"></div>Chargement...</div></div>
     </div>
+  </div>
+</div>
+
+<!-- BOTTOM NAV MOBILE -->
+<div class="bottom-nav" id="bottom-nav">
+  <div class="bottom-nav-inner">
+    <div class="bnav-item active" onclick="switchTabMobile('today',this)"><span class="bnav-icon">📋</span><span class="bnav-label">Prestas</span></div>
+    <div class="bnav-item" onclick="switchTabMobile('timeline',this)"><span class="bnav-icon">⏱</span><span class="bnav-label">Timeline</span></div>
+    <div class="bnav-item" onclick="switchTabMobile('verif',this)"><span class="bnav-icon">⚠️</span><span class="bnav-label">Alertes</span><span class="bnav-badge" id="bnav-verif-badge" style="display:none;">0</span></div>
+    <div class="bnav-item" onclick="switchTabMobile('history',this)"><span class="bnav-icon">📅</span><span class="bnav-label">Historique</span></div>
+    <div class="bnav-item" onclick="switchTabMobile('upcoming',this)"><span class="bnav-icon">🔮</span><span class="bnav-label">À venir</span></div>
   </div>
 </div>
 
@@ -484,21 +527,37 @@ function updateStats(){
   var totalA=0,totalP=0;
   D.prestas.forEach(function(pr){totalA+=pr.agents.length;totalP+=getPointes(pr.id);});
   var verifCount=D.pointages.filter(function(p){return p.statutVerif&&(p.statutVerif.indexOf('À vérifier')>-1||p.statutVerif.indexOf('Non affecté')>-1||p.statutVerif.indexOf('non vérifiée')>-1);}).length;
+  // Ajoute les non-affectés détectés côté client
+  var nonAffClientIds=new Set();
+  D.prestas.forEach(function(pr){getNonAffectes(pr.id,pr.siteId).forEach(function(p){nonAffClientIds.add(p.id);});});
+  var extraNonAff=D.pointages.filter(function(p){return nonAffClientIds.has(p.id)&&!(p.statutVerif&&(p.statutVerif.indexOf('À vérifier')>-1||p.statutVerif.indexOf('Non affecté')>-1||p.statutVerif.indexOf('non vérifiée')>-1));}).length;
+  verifCount+=extraNonAff;
   document.getElementById('s-prestas').textContent=D.prestas.length;
   document.getElementById('s-pointes').textContent=D.pointages.filter(function(p){return p.type==='Début de service';}).length;
   document.getElementById('s-manquants').textContent=Math.max(0,totalA-totalP);
   document.getElementById('s-taux').textContent=totalA>0?Math.round(totalP/totalA*100)+'%':'—';
   document.getElementById('s-verif').textContent=verifCount;
   var badge=document.getElementById('tab-verif-badge');
-  if(verifCount>0){badge.style.display='inline-block';badge.textContent=verifCount;}else{badge.style.display='none';}
+  var bnavBadge=document.getElementById('bnav-verif-badge');
+  if(verifCount>0){
+    badge.style.display='inline-block';badge.textContent=verifCount;
+    if(bnavBadge){bnavBadge.style.display='block';bnavBadge.textContent=verifCount;}
+  }else{
+    badge.style.display='none';
+    if(bnavBadge)bnavBadge.style.display='none';
+  }
 }
 
 function getNonAffectes(prestaId, siteId){
-  // Pointages dont le siteId correspond mais sans prestationId, ou prestationId différent
-  // (Inclut début ET fin de service)
+  // Agents qui ont pointé sur ce site mais ne sont PAS dans la liste des affectés de la prestation
+  var presta=D.prestas.find(function(p){return p.id===prestaId;});
+  var agentIds=presta?presta.agents.map(function(a){return a.id;}):[];
   return D.pointages.filter(function(p){
-    if(p.siteId!==siteId)return false;
-    if(p.prestationId===prestaId)return false;
+    // Doit être sur le même site OU lié à la même prestation
+    if(p.siteId!==siteId&&p.prestationId!==prestaId)return false;
+    // Si l'agent est dans la liste des affectés → il est normal
+    if(agentIds.indexOf(p.agentId)>-1)return false;
+    // Sinon c'est un non-affecté
     return true;
   });
 }
@@ -600,8 +659,20 @@ function renderTimeline(){
 
 // ── À VÉRIFIER ─────────────────────────────────────────────────────────────
 function renderVerif(){
-  var pts=D.pointages.filter(function(p){return p.statutVerif&&(p.statutVerif.indexOf('À vérifier')>-1||p.statutVerif.indexOf('Non affecté')>-1||p.statutVerif.indexOf('non vérifiée')>-1);});
+  // Collecte les pointages à vérifier par statut Notion
+  var ptsStatut=D.pointages.filter(function(p){return p.statutVerif&&(p.statutVerif.indexOf('À vérifier')>-1||p.statutVerif.indexOf('Non affecté')>-1||p.statutVerif.indexOf('non vérifiée')>-1);});
+  
+  // Collecte aussi les non-affectés détectés côté client (au cas où le statut Notion ne serait pas bon)
+  var nonAffIds=new Set();
+  D.prestas.forEach(function(pr){
+    var na=getNonAffectes(pr.id, pr.siteId);
+    na.forEach(function(p){nonAffIds.add(p.id);});
+  });
+  var ptsNonAff=D.pointages.filter(function(p){return nonAffIds.has(p.id)&&!ptsStatut.some(function(ps){return ps.id===p.id;});});
+  
+  var pts=ptsStatut.concat(ptsNonAff);
   pts.sort(function(a,b){return new Date(b.horodatage)-new Date(a.horodatage);});
+  
   if(!pts.length){document.getElementById('verif-container').innerHTML='<div class="empty">✓ Aucun pointage à vérifier</div>';return;}
   var html='<div class="table-wrap"><table><thead><tr><th>Heure</th><th>Agent</th><th>Nom saisi</th><th>Type</th><th>Site</th><th>Statut</th><th>Action</th></tr></thead><tbody>';
   pts.forEach(function(p){
@@ -609,7 +680,7 @@ function renderVerif(){
     var typeBadge=p.type==='Début de service'?'<span class="badge debut">Début</span>':'<span class="badge fin">Fin</span>';
     var statutBadge='<span class="badge alert">À vérifier</span>';
     if(p.statutVerif&&p.statutVerif.indexOf('non vérifiée')>-1)statutBadge='<span class="badge alert" style="background:rgba(226,75,74,.25);font-weight:bold;">🔴 Non vérifié</span>';
-    else if(p.statutVerif&&p.statutVerif.indexOf('Non affecté')>-1)statutBadge='<span class="badge" style="background:rgba(232,131,58,.15);color:#E8833A;border:1px solid rgba(232,131,58,.3);">Non affecté</span>';
+    else if(nonAffIds.has(p.id)||(p.statutVerif&&p.statutVerif.indexOf('Non affecté')>-1))statutBadge='<span class="badge" style="background:rgba(232,131,58,.15);color:#E8833A;border:1px solid rgba(232,131,58,.3);">Non affecté</span>';
     html+='<tr><td class="td-mono">'+h+'</td><td>'+escHtml(p.agentNom||'—')+'</td><td><strong>'+escHtml(p.nomSaisi||'—')+'</strong></td><td>'+typeBadge+'</td><td class="td-mono">'+escHtml(p.siteName||'—')+'</td><td>'+statutBadge+'</td>';
     html+='<td>'+(p.notionUrl?'<a href="'+p.notionUrl+'" target="_blank" class="btn-link">Notion →</a>':'—')+'</td></tr>';
   });
@@ -679,8 +750,28 @@ function showUpcomingDetail(pr){
 function switchTab(id,btn){
   document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active');});
   document.querySelectorAll('.tab-content').forEach(function(t){t.classList.remove('active');});
+  document.querySelectorAll('.bnav-item').forEach(function(t){t.classList.remove('active');});
   btn.classList.add('active');
   document.getElementById('tab-'+id).classList.add('active');
+  // Sync bottom nav
+  var bnavItems=document.querySelectorAll('.bnav-item');
+  var tabMap={today:0,timeline:1,verif:2,history:3,upcoming:4};
+  if(tabMap[id]!==undefined&&bnavItems[tabMap[id]])bnavItems[tabMap[id]].classList.add('active');
+  if(id==='history')loadHistory();
+  if(id==='upcoming')loadUpcoming();
+  if(id==='today'||id==='timeline'||id==='verif')loadToday();
+}
+
+function switchTabMobile(id,btn){
+  document.querySelectorAll('.bnav-item').forEach(function(t){t.classList.remove('active');});
+  document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active');});
+  document.querySelectorAll('.tab-content').forEach(function(t){t.classList.remove('active');});
+  btn.classList.add('active');
+  document.getElementById('tab-'+id).classList.add('active');
+  // Sync desktop tabs
+  var tabs=document.querySelectorAll('.tab');
+  var tabMap={today:0,timeline:1,verif:2,history:3,upcoming:4};
+  if(tabMap[id]!==undefined&&tabs[tabMap[id]])tabs[tabMap[id]].classList.add('active');
   if(id==='history')loadHistory();
   if(id==='upcoming')loadUpcoming();
   if(id==='today'||id==='timeline'||id==='verif')loadToday();

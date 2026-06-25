@@ -401,6 +401,12 @@ function selectAgentFound(agent, horsPrestation){
   hideErr('nom-error');
   document.getElementById('homonyme-field').style.display='none';
 
+  // Si l'agent n'a pas de prestation détectée sur ce site, marque comme "à vérifier"
+  // Cas : agent existe dans la base mais pas affecté à la prestation du site, ou pointage sans site
+  if(!agent.prestationId && S.siteId){
+    agent.aVerifier=true;
+  }
+
   // Vérifie si déjà pointé
   api('GET','/api/check?agentId='+agent.id+'&type='+S.type,null).then(function(data){
     if(data.alreadyPointed){

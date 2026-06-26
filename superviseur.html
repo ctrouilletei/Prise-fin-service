@@ -665,7 +665,7 @@ function renderVerif(){
   // Pointages à vérifier sur 30 jours (par statut Notion)
   var ptsStatut=D.pointagesVerif||[];
   
-  // Ajoute les non-affectés détectés côté client (uniquement du jour, basé sur D.pointages)
+  // Ajoute les non-affectés détectés côté client (du jour, basé sur D.pointages)
   var nonAffIds=new Set();
   D.prestas.forEach(function(pr){
     var na=getNonAffectes(pr.id, pr.siteId);
@@ -673,46 +673,83 @@ function renderVerif(){
   });
   var ptsNonAff=D.pointages.filter(function(p){return nonAffIds.has(p.id)&&!ptsStatut.some(function(ps){return ps.id===p.id;});});
   
-  var pts=ptsStatut.concat(ptsNonAff);
-  pts.sort(function(a,b){return new Date(b.horodatage)-new Date(a.horodatage);});
-  
-  if(!pts.length){document.getElementById('verif-container').innerHTML='<div class="empty">✓ Aucun pointage à vérifier</div>';return;}
-  var html='';
-  pts.forEach(function(p){
-    var dt=new Date(p.horodatage);
-    var h=dt.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
-    var today=new Date().toISOString().split('T')[0];
-    var ptDate=dt.toISOString().split('T')[0];
-    var isToday=ptDate===today;
-    var dateLabel=isToday?'':dt.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'})+' à ';
-    var typeBadge=p.type==='Début de service'?'<span class="badge debut">🟢 Début</span>':'<span class="badge fin">🔴 Fin</span>';
-    var isNonVerif=p.statutVerif&&p.statutVerif.indexOf('non vérifiée')>-1;
-    var isNonAff=nonAffIds.has(p.id)||(p.statutVerif&&p.statutVerif.indexOf('Non affecté')>-1);
-    var statutBadge='<span class="badge alert">⚠ À vérifier</span>';
-    if(isNonVerif)statutBadge='<span class="badge alert" style="background:rgba(226,75,74,.25);font-weight:bold;">🔴 Non vérifié</span>';
-    else if(isNonAff)statutBadge='<span class="badge" style="background:rgba(232,131,58,.15);color:#E8833A;border:1px solid rgba(232,131,58,.3);">⚠ Non affecté</span>';
-    
-    var borderColor=isNonVerif?'rgba(226,75,74,.4)':isNonAff?'rgba(232,131,58,.3)':'rgba(226,75,74,.25)';
-    var bgColor=isNonVerif?'rgba(226,75,74,.06)':isNonAff?'rgba(232,131,58,.04)':'rgba(226,75,74,.04)';
-    
-    html+='<div class="p-item" id="verif-'+p.id+'" style="border-color:'+borderColor+';background:'+bgColor+';margin-bottom:10px;">';
-    html+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">';
-    html+='<div class="p-agent" style="font-size:14px;">'+escHtml(p.agentNom||p.nomSaisi||'?')+'</div>';
-    html+=typeBadge+'</div>';
-    html+='<div class="p-meta" style="margin-bottom:8px;">';
-    html+='<span>🕐 '+dateLabel+h+'</span>';
-    if(p.siteName)html+='<span>📍 '+escHtml(p.siteName)+'</span>';
-    html+=statutBadge;
-    html+='</div>';
-    if(p.nomSaisi&&p.nomSaisi!==p.agentNom)html+='<div style="font-family:DM Mono,monospace;font-size:10px;color:var(--gray);margin-bottom:8px;">Nom saisi : <strong>'+escHtml(p.nomSaisi)+'</strong></div>';
-    // Boutons d'action
-    html+='<div style="display:flex;gap:8px;margin-top:4px;">';
-    html+='<button onclick="validatePointage(\''+p.id+'\',\'validate\')" style="flex:1;background:rgba(29,158,117,.15);border:1px solid rgba(29,158,117,.3);border-radius:4px;color:#5DCAA5;font-family:DM Mono,monospace;font-size:11px;padding:8px;cursor:pointer;">✅ Valider</button>';
-    html+='<button onclick="validatePointage(\''+p.id+'\',\'reject\')" style="flex:1;background:rgba(226,75,74,.1);border:1px solid rgba(226,75,74,.3);border-radius:4px;color:#F09595;font-family:DM Mono,monospace;font-size:11px;padding:8px;cursor:pointer;">❌ Rejeter</button>';
-    html+='</div>';
-    html+='</div>';
+  var allPts=ptsStatut.concat(ptsNonAff);
+
+  // Catégorise par priorité
+  var catAVerifier=[]; // Nom incorrect/inconnu
+  var catNonVerif=[]; // 🔴 Identité non vérifiée
+  var catNonAffecte=[]; // Agent connu mais pas affecté
+
+  allPts.forEach(function(p){
+    if(p.statutVerif&&p.statutVerif.indexOf('À vérifier')>-1)catAVerifier.push(p);
+    else if(p.statutVerif&&p.statutVerif.indexOf('non vérifiée')>-1)catNonVerif.push(p);
+    else catNonAffecte.push(p);
   });
+  
+  // Tri chronologique inverse dans chaque catégorie
+  [catAVerifier,catNonVerif,catNonAffecte].forEach(function(arr){arr.sort(function(a,b){return new Date(b.horodatage)-new Date(a.horodatage);});});
+
+  if(!allPts.length){document.getElementById('verif-container').innerHTML='<div class="empty">✓ Aucune alerte</div>';return;}
+
+  var html='';
+  // Catégorie 1 : Nom incorrect/inconnu (PRIORITÉ HAUTE)
+  if(catAVerifier.length){
+    html+='<div class="cat-header" style="background:rgba(226,75,74,.1);border:1px solid rgba(226,75,74,.25);padding:10px 14px;border-radius:8px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;">';
+    html+='<div><div style="font-family:DM Mono,monospace;font-size:11px;color:#F09595;text-transform:uppercase;letter-spacing:.1em;font-weight:bold;">⚠ Nom incorrect ou inconnu</div>';
+    html+='<div style="font-size:11px;color:var(--gray);margin-top:2px;">Le nom saisi par l\'agent n\'a pas été reconnu</div></div>';
+    html+='<span class="badge alert" style="font-size:12px;">'+catAVerifier.length+'</span></div>';
+    catAVerifier.forEach(function(p){html+=renderVerifItem(p,'incorrect');});
+  }
+
+  // Catégorie 2 : Identité non vérifiée (URGENT)
+  if(catNonVerif.length){
+    html+='<div class="cat-header" style="background:rgba(226,75,74,.18);border:1px solid rgba(226,75,74,.4);padding:10px 14px;border-radius:8px;margin-bottom:10px;margin-top:18px;display:flex;align-items:center;justify-content:space-between;">';
+    html+='<div><div style="font-family:DM Mono,monospace;font-size:11px;color:#F09595;text-transform:uppercase;letter-spacing:.1em;font-weight:bold;">🔴 Identité non vérifiée</div>';
+    html+='<div style="font-size:11px;color:var(--gray);margin-top:2px;">L\'agent n\'a pas pu prouver son identité (date de naissance)</div></div>';
+    html+='<span class="badge alert" style="background:rgba(226,75,74,.25);font-weight:bold;font-size:12px;">'+catNonVerif.length+'</span></div>';
+    catNonVerif.forEach(function(p){html+=renderVerifItem(p,'nonverif');});
+  }
+
+  // Catégorie 3 : Non affecté (À INFO)
+  if(catNonAffecte.length){
+    html+='<div class="cat-header" style="background:rgba(232,131,58,.08);border:1px solid rgba(232,131,58,.25);padding:10px 14px;border-radius:8px;margin-bottom:10px;margin-top:18px;display:flex;align-items:center;justify-content:space-between;">';
+    html+='<div><div style="font-family:DM Mono,monospace;font-size:11px;color:#E8833A;text-transform:uppercase;letter-spacing:.1em;font-weight:bold;">⚠ Agent non affecté</div>';
+    html+='<div style="font-size:11px;color:var(--gray);margin-top:2px;">Agent reconnu mais pas dans la liste des affectés au site</div></div>';
+    html+='<span class="badge" style="background:rgba(232,131,58,.15);color:#E8833A;border:1px solid rgba(232,131,58,.3);font-size:12px;">'+catNonAffecte.length+'</span></div>';
+    catNonAffecte.forEach(function(p){html+=renderVerifItem(p,'nonaffecte');});
+  }
+
   document.getElementById('verif-container').innerHTML=html;
+}
+
+function renderVerifItem(p, type){
+  var dt=new Date(p.horodatage);
+  var h=dt.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+  var today=new Date().toISOString().split('T')[0];
+  var ptDate=dt.toISOString().split('T')[0];
+  var isToday=ptDate===today;
+  var dateLabel=isToday?'':dt.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'})+' à ';
+  var typeBadge=p.type==='Début de service'?'<span class="badge debut">🟢 Début</span>':'<span class="badge fin">🔴 Fin</span>';
+  
+  var borderColor='rgba(226,75,74,.25)',bgColor='rgba(226,75,74,.04)';
+  if(type==='nonverif'){borderColor='rgba(226,75,74,.4)';bgColor='rgba(226,75,74,.06)';}
+  else if(type==='nonaffecte'){borderColor='rgba(232,131,58,.3)';bgColor='rgba(232,131,58,.04)';}
+  
+  var html='<div class="p-item" id="verif-'+p.id+'" style="border-color:'+borderColor+';background:'+bgColor+';margin-bottom:10px;margin-left:8px;">';
+  html+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">';
+  html+='<div class="p-agent" style="font-size:14px;">'+escHtml(p.agentNom||p.nomSaisi||'?')+'</div>';
+  html+=typeBadge+'</div>';
+  html+='<div class="p-meta" style="margin-bottom:8px;">';
+  html+='<span>🕐 '+dateLabel+h+'</span>';
+  if(p.siteName)html+='<span>📍 '+escHtml(p.siteName)+'</span>';
+  html+='</div>';
+  if(p.nomSaisi&&p.nomSaisi!==p.agentNom)html+='<div style="font-family:DM Mono,monospace;font-size:10px;color:var(--gray);margin-bottom:8px;">Nom saisi : <strong>'+escHtml(p.nomSaisi)+'</strong></div>';
+  html+='<div style="display:flex;gap:8px;margin-top:4px;">';
+  html+='<button onclick="validatePointage(\''+p.id+'\',\'validate\')" style="flex:1;background:rgba(29,158,117,.15);border:1px solid rgba(29,158,117,.3);border-radius:4px;color:#5DCAA5;font-family:DM Mono,monospace;font-size:11px;padding:8px;cursor:pointer;">✅ Valider</button>';
+  html+='<button onclick="validatePointage(\''+p.id+'\',\'reject\')" style="flex:1;background:rgba(226,75,74,.1);border:1px solid rgba(226,75,74,.3);border-radius:4px;color:#F09595;font-family:DM Mono,monospace;font-size:11px;padding:8px;cursor:pointer;">❌ Rejeter</button>';
+  html+='</div>';
+  html+='</div>';
+  return html;
 }
 
 function validatePointage(pageId, action){

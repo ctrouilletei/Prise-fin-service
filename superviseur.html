@@ -425,7 +425,7 @@ tr:hover td{background:var(--dark2);}
 
 <script>
 var APP_URL = window.location.origin;
-var D = {prestas:[], pointages:[], filter:'all', timelineFilter:'all', supervisor:null};
+var D = {prestas:[], pointages:[], pointagesVerif:[], filter:'all', timelineFilter:'all', supervisor:null};
 var histData = [];
 var currentQRUrl = '';
 var SESSION_KEY = 'jetguards_supervisor_session';
@@ -501,12 +501,16 @@ function init(){
 
 function loadToday(){
   var today=new Date().toISOString().split('T')[0];
+  var d30=new Date(Date.now()-30*24*60*60*1000).toISOString().split('T')[0];
   Promise.all([
     fetch('/api/superviseur/prestas?date='+today).then(function(r){return r.json();}),
-    fetch('/api/superviseur/pointages?date='+today).then(function(r){return r.json();})
+    fetch('/api/superviseur/pointages?date='+today).then(function(r){return r.json();}),
+    fetch('/api/superviseur/pointages?dateStart='+d30+'&dateEnd='+today).then(function(r){return r.json();})
   ]).then(function(r){
     D.prestas=r[0].prestas||[];
     D.pointages=r[1].pointages||[];
+    // Filtre uniquement les "à vérifier" sur 30j
+    D.pointagesVerif=(r[2].pointages||[]).filter(function(p){return p.statutVerif&&(p.statutVerif.indexOf('À vérifier')>-1||p.statutVerif.indexOf('Non affecté')>-1||p.statutVerif.indexOf('non vérifiée')>-1);});
     updateStats();
     renderToday();
     renderTimeline();
@@ -521,11 +525,13 @@ function getPointes(prestaId){var ids=new Set();D.pointages.forEach(function(p){
 function updateStats(){
   var totalA=0,totalP=0;
   D.prestas.forEach(function(pr){totalA+=pr.agents.length;totalP+=getPointes(pr.id);});
-  var verifCount=D.pointages.filter(function(p){return p.statutVerif&&(p.statutVerif.indexOf('À vérifier')>-1||p.statutVerif.indexOf('Non affecté')>-1||p.statutVerif.indexOf('non vérifiée')>-1);}).length;
-  // Ajoute les non-affectés détectés côté client
+  // Compteur "à vérifier" sur les 30 derniers jours + non-affectés du jour
+  var verifCount=(D.pointagesVerif||[]).length;
+  // Ajoute les non-affectés détectés côté client (du jour uniquement)
   var nonAffClientIds=new Set();
   D.prestas.forEach(function(pr){getNonAffectes(pr.id,pr.siteId).forEach(function(p){nonAffClientIds.add(p.id);});});
-  var extraNonAff=D.pointages.filter(function(p){return nonAffClientIds.has(p.id)&&!(p.statutVerif&&(p.statutVerif.indexOf('À vérifier')>-1||p.statutVerif.indexOf('Non affecté')>-1||p.statutVerif.indexOf('non vérifiée')>-1));}).length;
+  var verifIds=new Set((D.pointagesVerif||[]).map(function(p){return p.id;}));
+  var extraNonAff=D.pointages.filter(function(p){return nonAffClientIds.has(p.id)&&!verifIds.has(p.id);}).length;
   verifCount+=extraNonAff;
   document.getElementById('s-prestas').textContent=D.prestas.length;
   document.getElementById('s-pointes').textContent=D.pointages.filter(function(p){return p.type==='Début de service';}).length;
@@ -656,10 +662,10 @@ function renderTimeline(){
 
 // ── À VÉRIFIER ─────────────────────────────────────────────────────────────
 function renderVerif(){
-  // Collecte les pointages à vérifier par statut Notion
-  var ptsStatut=D.pointages.filter(function(p){return p.statutVerif&&(p.statutVerif.indexOf('À vérifier')>-1||p.statutVerif.indexOf('Non affecté')>-1||p.statutVerif.indexOf('non vérifiée')>-1);});
+  // Pointages à vérifier sur 30 jours (par statut Notion)
+  var ptsStatut=D.pointagesVerif||[];
   
-  // Collecte aussi les non-affectés détectés côté client
+  // Ajoute les non-affectés détectés côté client (uniquement du jour, basé sur D.pointages)
   var nonAffIds=new Set();
   D.prestas.forEach(function(pr){
     var na=getNonAffectes(pr.id, pr.siteId);
@@ -673,7 +679,12 @@ function renderVerif(){
   if(!pts.length){document.getElementById('verif-container').innerHTML='<div class="empty">✓ Aucun pointage à vérifier</div>';return;}
   var html='';
   pts.forEach(function(p){
-    var h=new Date(p.horodatage).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+    var dt=new Date(p.horodatage);
+    var h=dt.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+    var today=new Date().toISOString().split('T')[0];
+    var ptDate=dt.toISOString().split('T')[0];
+    var isToday=ptDate===today;
+    var dateLabel=isToday?'':dt.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'})+' à ';
     var typeBadge=p.type==='Début de service'?'<span class="badge debut">🟢 Début</span>':'<span class="badge fin">🔴 Fin</span>';
     var isNonVerif=p.statutVerif&&p.statutVerif.indexOf('non vérifiée')>-1;
     var isNonAff=nonAffIds.has(p.id)||(p.statutVerif&&p.statutVerif.indexOf('Non affecté')>-1);
@@ -689,7 +700,7 @@ function renderVerif(){
     html+='<div class="p-agent" style="font-size:14px;">'+escHtml(p.agentNom||p.nomSaisi||'?')+'</div>';
     html+=typeBadge+'</div>';
     html+='<div class="p-meta" style="margin-bottom:8px;">';
-    html+='<span>🕐 '+h+'</span>';
+    html+='<span>🕐 '+dateLabel+h+'</span>';
     if(p.siteName)html+='<span>📍 '+escHtml(p.siteName)+'</span>';
     html+=statutBadge;
     html+='</div>';
@@ -698,7 +709,6 @@ function renderVerif(){
     html+='<div style="display:flex;gap:8px;margin-top:4px;">';
     html+='<button onclick="validatePointage(\''+p.id+'\',\'validate\')" style="flex:1;background:rgba(29,158,117,.15);border:1px solid rgba(29,158,117,.3);border-radius:4px;color:#5DCAA5;font-family:DM Mono,monospace;font-size:11px;padding:8px;cursor:pointer;">✅ Valider</button>';
     html+='<button onclick="validatePointage(\''+p.id+'\',\'reject\')" style="flex:1;background:rgba(226,75,74,.1);border:1px solid rgba(226,75,74,.3);border-radius:4px;color:#F09595;font-family:DM Mono,monospace;font-size:11px;padding:8px;cursor:pointer;">❌ Rejeter</button>';
-    if(p.notionUrl)html+='<a href="'+p.notionUrl+'" target="_blank" style="background:var(--dark2);border:1px solid var(--dark3);border-radius:4px;color:var(--gray);font-family:DM Mono,monospace;font-size:11px;padding:8px 12px;cursor:pointer;text-decoration:none;display:flex;align-items:center;">Notion →</a>';
     html+='</div>';
     html+='</div>';
   });

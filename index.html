@@ -473,7 +473,7 @@ function onVerify(){
   } else if(dob.length>=4){
     S.verifyAttempts++;
     if(S.verifyAttempts>=MAX_VERIFY){
-      showErr('verify-error','3 tentatives incorrectes. Vous pouvez pointer sans vérification, votre coordinateur sera alerté.');
+      showErr('verify-error','3 tentatives incorrectes. Vous pouvez pointer en cliquant ci-dessous.');
       document.getElementById('btn-bypass').style.display='block';
     } else {
       var r=MAX_VERIFY-S.verifyAttempts;
@@ -489,7 +489,7 @@ function bypassVerify(){
   if(S.selectedAgent) S.selectedAgent.identiteNonVerifiee=true;
   document.getElementById('verify-error').className='alert danger';
   var warn=document.getElementById('verify-ok');
-  warn.textContent='⚠ Pointage sans vérification — votre coordinateur sera alerté';
+  warn.textContent='✓ Pointage validé';
   warn.className='alert warn show';
   showSig();
 }
@@ -514,7 +514,7 @@ function clearSig(){ctx.clearRect(0,0,canvas.width,canvas.height);S.sigDrawn=fal
 
 function submitForm(){
   if(!S.sigDrawn){showErr('sig-alert','Veuillez signer avant de valider');return;}
-  showOverlay('Enregistrement dans Notion...');
+  showOverlay('Enregistrement de votre pointage...');
   var now=new Date(),heure=now.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
   var typeLabel=S.type==='debut'?'Début de service':'Fin de service';
   var geoStr=S.geo?S.geo.lat.toFixed(5)+', '+S.geo.lng.toFixed(5)+' (±'+S.geo.acc+'m)':'Non disponible';
@@ -543,9 +543,7 @@ function submitForm(){
       '<div class="detail-row"><span class="detail-key">Heure</span><span class="detail-val">'+heure+'</span></div>'+
       (S.prestation?'<div class="detail-row"><span class="detail-key">Prestation</span><span class="detail-val">'+S.prestation.nom+'</span></div>':'')+
       '<div class="detail-row"><span class="detail-key">Position</span><span class="badge '+(onSite?'green':'orange')+'">'+(onSite?'✓ SUR SITE':'⚠ HORS SITE')+'</span></div>'+
-      '<div class="detail-row"><span class="detail-key">Signature</span><span class="detail-val" style="color:#5DCAA5">✓ Enregistrée</span></div>'+
-      (S.selectedAgent&&S.selectedAgent.aVerifier?'<div class="detail-row"><span class="detail-key">Statut</span><span class="badge orange">⚠ À vérifier</span></div>':'')+
-      (S.selectedAgent&&S.selectedAgent.identiteNonVerifiee?'<div class="detail-row"><span class="detail-key">Statut</span><span class="badge red">🔴 Non vérifié</span></div>':'');
+      '<div class="detail-row"><span class="detail-key">Signature</span><span class="detail-val" style="color:#5DCAA5">✓ Enregistrée</span></div>';
     showScreen('screen-success');
   }).catch(function(){hideOverlay();alert('Erreur de connexion. Réessayez.');});
 }

@@ -161,6 +161,13 @@ canvas{width:100%;height:130px;display:block;background:#fff;border-radius:4px;t
         <div class="field-label">Mon nom et prénom *</div>
         <input type="text" id="nom-input" placeholder="Ex: Jean DUPONT" autocomplete="off" autocorrect="off" spellcheck="false">
         <div class="alert warn" id="nom-hint" style="display:flex;">✏️ Saisissez votre nom et prénom exacts tels qu'ils apparaissent sur votre carte pro</div>
+      </div>
+
+      <!-- DATE DE NAISSANCE -->
+      <div class="field">
+        <div class="field-label">Date de naissance (JJ/MM) *</div>
+        <input type="text" inputmode="numeric" maxlength="5" id="dob-input" placeholder="Ex: 15/03" autocomplete="off">
+        <div class="alert warn" style="display:flex;">🎂 Pour confirmer votre identité</div>
         <button class="btn-search" onclick="searchAgent()">Rechercher →</button>
         <div class="alert danger" id="nom-error"></div>
       </div>
@@ -171,18 +178,11 @@ canvas{width:100%;height:130px;display:block;background:#fff;border-radius:4px;t
         <div class="homonyme-list" id="homonyme-list"></div>
       </div>
 
-      <!-- VÉRIFICATION IDENTITÉ -->
+      <!-- BYPASS si non vérifiable -->
       <div class="field" id="verify-field" style="display:none">
-        <div class="field-label">Vérification d'identité</div>
         <div class="verify-box">
-          <div class="verify-title">Confirmez votre identité</div>
-          <div class="verify-option">
-            <div class="verify-hint">🎂 Date de naissance (JJ/MM)</div>
-            <input type="text" inputmode="numeric" maxlength="5" id="dob-input" placeholder="Ex: 15/03" oninput="onVerify()" autocomplete="off">
-          </div>
           <div class="alert danger" id="verify-error"></div>
-          <div class="alert success" id="verify-ok">✓ Identité confirmée</div>
-          <button class="btn-bypass" id="btn-bypass" onclick="bypassVerify()" style="display:none">❓ Je ne peux pas me vérifier — Pointer sans vérification</button>
+          <button class="btn-bypass" id="btn-bypass" onclick="bypassVerify()" style="display:none">❓ Je ne peux pas me vérifier — Pointer quand même</button>
         </div>
       </div>
 
@@ -325,12 +325,15 @@ function loadSiteAgents(){
   });
 }
 
-// Recherche de l'agent par nom saisi
+// Recherche de l'agent par nom + date de naissance
 function searchAgent(){
   var nom=document.getElementById('nom-input').value.trim();
+  var dob=document.getElementById('dob-input').value.trim();
   if(!nom){showErr('nom-error','Veuillez saisir votre nom et prénom');return;}
   if(nom.length<3){showErr('nom-error','Nom trop court — saisissez votre nom complet');return;}
+  if(!dob||dob.replace(/[^0-9]/g,'').length<4){showErr('nom-error','Veuillez saisir votre date de naissance (JJ/MM)');return;}
   hideErr('nom-error');
+  S.saisiDob=dob.replace(/[^0-9]/g,'').slice(0,4); // JJMM
   showOverlay('Recherche en cours...');
 
   // Recherche exacte (insensible à la casse et aux accents, dans les deux ordres)
@@ -340,12 +343,10 @@ function searchAgent(){
   var normInverse=parts.length>=2?parts.slice(1).concat(parts[0]).join(' '):normNom;
   var matches=S.siteAgents.filter(function(a){var n=norm(a.nom);return n===normNom||n===normInverse;});
 
-  // Si pas de match exact, essaie la recherche tolérante (max 2 fautes de frappe)
   if(matches.length===0&&S.siteAgents.length>0){
     matches=fuzzySearch(normNom, normInverse, S.siteAgents);
   }
 
-  // Si pas de résultat avec les agents du site, cherche dans toute la base
   if(matches.length===0&&S.siteId){
     api('GET','/api/agent/search?nom='+encodeURIComponent(nom),null).then(function(data){
       hideOverlay();
@@ -357,21 +358,62 @@ function searchAgent(){
   }
 }
 
+// Vérifie la date de naissance d'un agent par rapport à celle saisie
+function checkDob(agent){
+  if(!agent.dateNaissance||!S.saisiDob)return false;
+  var parts=agent.dateNaissance.split('-');
+  if(parts.length<3)return false;
+  var expected=parts[2]+parts[1]; // JJMM
+  return S.saisiDob===expected;
+}
+
 function handleSearchResults(matches, nomSaisi, horsPrestation){
   if(matches.length===0){
-    // Aucune correspondance → pointage "À vérifier"
-    showErr('nom-error','Nom non trouvé. Vérifiez l\'orthographe ou contactez votre coordinateur.');
-    // Proposer quand même de pointer avec vérification manuelle
+    // Aucune correspondance par nom → pointage "À vérifier"
+    showErr('nom-error','Nom non trouvé. Vérifiez l\'orthographe.');
     S.selectedAgent={id:null,nom:nomSaisi,cartePro:'',dateNaissance:'',aVerifier:true};
-    showVerifyNotFound(nomSaisi);
-  } else if(matches.length===1){
-    // Correspondance unique
-    selectAgentFound(matches[0], horsPrestation);
-  } else {
-    // Homonymes
-    hideOverlay();
-    showHomonymes(matches);
+    showVerifyFailed();
+    return;
   }
+  // Filtre les matchs par date de naissance
+  var matchesDob=matches.filter(checkDob);
+  if(matchesDob.length===1){
+    // Un seul agent avec nom + date qui correspondent → tout est validé !
+    var agent=matchesDob[0];
+    S.verifyMethod='DATE_NAISSANCE';
+    selectAgentFoundDirect(agent, horsPrestation);
+  } else if(matchesDob.length>1){
+    // Plusieurs homonymes avec même date de naissance (très rare)
+    hideOverlay();
+    showHomonymes(matchesDob);
+  } else if(matches.length===1){
+    // Nom correspond mais pas la date — incrémente compteur
+    S.verifyAttempts=(S.verifyAttempts||0)+1;
+    if(S.verifyAttempts>=3){
+      showErr('nom-error','3 tentatives incorrectes. Vous pouvez pointer en cliquant ci-dessous.');
+      S.selectedAgent={id:matches[0].id,nom:matches[0].nom,cartePro:'',dateNaissance:matches[0].dateNaissance,identiteNonVerifiee:true};
+      showVerifyFailed();
+    } else {
+      var r=3-S.verifyAttempts;
+      showErr('nom-error','Date de naissance incorrecte — '+r+' tentative'+(r>1?'s':'')+' restante'+(r>1?'s':''));
+    }
+  } else {
+    // Plusieurs noms mais aucun avec la bonne date
+    S.verifyAttempts=(S.verifyAttempts||0)+1;
+    if(S.verifyAttempts>=3){
+      showErr('nom-error','3 tentatives incorrectes. Vous pouvez pointer en cliquant ci-dessous.');
+      S.selectedAgent={id:null,nom:nomSaisi,cartePro:'',dateNaissance:'',identiteNonVerifiee:true};
+      showVerifyFailed();
+    } else {
+      var r2=3-S.verifyAttempts;
+      showErr('nom-error','Aucune correspondance — '+r2+' tentative'+(r2>1?'s':'')+' restante'+(r2>1?'s':''));
+    }
+  }
+}
+
+function showVerifyFailed(){
+  document.getElementById('verify-field').style.display='flex';
+  document.getElementById('btn-bypass').style.display='block';
 }
 
 function showHomonymes(agents){
@@ -389,28 +431,15 @@ function showHomonymes(agents){
 function selectHomonyme(agent){
   document.querySelectorAll('.homonyme-item').forEach(function(el){el.classList.remove('selected');});
   event.currentTarget.classList.add('selected');
-  selectAgentFound(agent, false);
+  S.verifyMethod='DATE_NAISSANCE';
+  selectAgentFoundDirect(agent, false);
 }
 
-function showVerifyNotFound(nom){
-  // Agent non trouvé — propose de pointer "À vérifier" directement
-  document.getElementById('verify-field').style.display='none';
-  // Affiche directement signature pour pointer "À vérifier"
-  showSig();
-}
-
-function selectAgentFound(agent, horsPrestation){
+function selectAgentFoundDirect(agent, horsPrestation){
   S.selectedAgent=agent;
-  S.verifyAttempts=0;
   hideErr('nom-error');
   document.getElementById('homonyme-field').style.display='none';
-
-  // Si l'agent n'a pas de prestation détectée sur ce site, marque comme "à vérifier"
-  // Cas : agent existe dans la base mais pas affecté à la prestation du site, ou pointage sans site
-  if(!agent.prestationId && S.siteId){
-    agent.aVerifier=true;
-  }
-
+  if(!agent.prestationId && S.siteId)agent.aVerifier=true;
   // Vérifie si déjà pointé
   api('GET','/api/check?agentId='+agent.id+'&type='+S.type,null).then(function(data){
     if(data.alreadyPointed){
@@ -421,76 +450,30 @@ function selectAgentFound(agent, horsPrestation){
     if(S.type==='fin'){
       api('GET','/api/check?agentId='+agent.id+'&type=debut',null).then(function(d2){
         if(!d2.alreadyPointed){showErr('check-alert','⚠ Vous n\'avez pas encore pointé votre début de service aujourd\'hui');}
-        else{showVerify(agent, horsPrestation);}
-      }).catch(function(){showVerify(agent, horsPrestation);});
+        else{showPrestaAndSig(agent);}
+      }).catch(function(){showPrestaAndSig(agent);});
     } else {
-      showVerify(agent, horsPrestation);
+      showPrestaAndSig(agent);
     }
-  }).catch(function(){showVerify(agent, horsPrestation);});
+  }).catch(function(){showPrestaAndSig(agent);});
 }
 
-function showVerify(agent, horsPrestation){
-  // Affiche prestation si trouvée
+function showPrestaAndSig(agent){
   if(agent.prestationId){
     S.prestation={id:agent.prestationId,nom:agent.prestationNom};
     document.getElementById('presta-name').textContent=agent.prestationNom||'Prestation du jour';
     document.getElementById('presta-sub').textContent=S.siteName||'';
     document.getElementById('presta-field').style.display='flex';
   }
-  // Note: si l'agent n'est pas affecté à la prestation, on ne lui dit rien.
-  // Le superviseur verra le pointage dans l'onglet "À vérifier" du dashboard.
-  // Affiche le champ de vérification
-  document.getElementById('verify-field').style.display='flex';
-  document.getElementById('dob-input').value='';
-  document.getElementById('verify-error').className='alert danger';
-  document.getElementById('verify-ok').className='alert success';
-}
-
-function onVerify(){
-  var dob=document.getElementById('dob-input').value.trim();
-  var agent=S.selectedAgent;
-  if(!agent)return;
-
-  var verified=false;
-
-  // Vérification date de naissance (JJ/MM)
-  if(dob.length>=4&&agent.dateNaissance){
-    var dobClean=dob.replace(/[^0-9]/g,'');
-    var parts=agent.dateNaissance.split('-');
-    if(parts.length>=3){
-      var expected=parts[2]+parts[1];// JJMM
-      if(dobClean===expected)verified=true;
-    }
-  }
-
-  if(verified){
-    S.verifyMethod='DATE_NAISSANCE';
-    document.getElementById('verify-error').className='alert danger';
-    document.getElementById('verify-ok').className='alert success show';
-    document.getElementById('dob-input').className='ok';
-    document.getElementById('btn-bypass').style.display='none';
-    showSig();
-  } else if(dob.length>=4){
-    S.verifyAttempts++;
-    if(S.verifyAttempts>=MAX_VERIFY){
-      showErr('verify-error','3 tentatives incorrectes. Vous pouvez pointer en cliquant ci-dessous.');
-      document.getElementById('btn-bypass').style.display='block';
-    } else {
-      var r=MAX_VERIFY-S.verifyAttempts;
-      showErr('verify-error','Date incorrecte — '+r+' tentative'+(r>1?'s':'')+' restante'+(r>1?'s':''));
-      // Affiche aussi le bouton bypass dès la 2ème tentative
-      if(S.verifyAttempts>=2) document.getElementById('btn-bypass').style.display='block';
-    }
-  }
+  showSig();
 }
 
 function bypassVerify(){
   S.verifyMethod='NON_VERIFIE';
-  if(S.selectedAgent) S.selectedAgent.identiteNonVerifiee=true;
-  document.getElementById('verify-error').className='alert danger';
-  var warn=document.getElementById('verify-ok');
-  warn.textContent='✓ Pointage validé';
-  warn.className='alert warn show';
+  if(!S.selectedAgent) S.selectedAgent={id:null,nom:document.getElementById('nom-input').value.trim(),identiteNonVerifiee:true};
+  else S.selectedAgent.identiteNonVerifiee=true;
+  document.getElementById('verify-field').style.display='none';
+  hideErr('nom-error');
   showSig();
 }
 
@@ -549,14 +532,12 @@ function submitForm(){
 }
 
 function resetForm(){
-  S.selectedAgent=null;S.prestation=null;S.sigDrawn=false;S.verifyAttempts=0;S.verifyMethod=null;
+  S.selectedAgent=null;S.prestation=null;S.sigDrawn=false;S.verifyAttempts=0;S.verifyMethod=null;S.saisiDob='';
   clearSig();
   document.getElementById('nom-input').value='';
+  document.getElementById('dob-input').value='';
   ['verify-field','sig-field','btn-submit','presta-field','homonyme-field'].forEach(function(id){document.getElementById(id).style.display='none';});
   ['nom-error','check-alert','verify-error','sig-alert'].forEach(function(id){document.getElementById(id).className='alert danger';});
-  document.getElementById('verify-ok').className='alert success';
-  document.getElementById('dob-input').value='';
-  document.getElementById('dob-input').className='';
   document.getElementById('btn-bypass').style.display='none';
   selectType('debut');showScreen('screen-form');
 }

@@ -285,6 +285,49 @@ var server = http.createServer(function(req, res) {
     return;
   }
 
+  // ── POST /api/superviseur/link-agent ─────────────────────────────────────
+  if(req.method==='POST'&&pathname==='/api/superviseur/link-agent'){
+    var body='';req.on('data',function(c){body+=c;});req.on('end',function(){
+      var d;try{d=JSON.parse(body);}catch(e){res.writeHead(400);res.end('Bad request');return;}
+      if(!d.pageId||!d.agentId){res.writeHead(400,{'Content-Type':'application/json'});res.end(JSON.stringify({error:'pageId et agentId requis'}));return;}
+      notionRequest('PATCH','pages/'+d.pageId,{
+        properties:{
+          'Agent':{relation:[{id:formatId(d.agentId)}]},
+          'Statut vérification':{select:{name:'✅ Vérifié manuellement'}}
+        }
+      }).then(function(result){
+        if(result.object==='error'){res.writeHead(500,{'Content-Type':'application/json'});res.end(JSON.stringify({error:result.message}));}
+        else{res.writeHead(200,{'Content-Type':'application/json'});res.end(JSON.stringify({success:true}));}
+      }).catch(function(e){res.writeHead(500,{'Content-Type':'application/json'});res.end(JSON.stringify({error:e.message}));});
+    });
+    return;
+  }
+
+  // ── GET /api/superviseur/agents-list ─────────────────────────────────────
+  if(req.method==='GET'&&pathname==='/api/superviseur/agents-list'){
+    var p6=new URLSearchParams(parsed.query||''),query=p6.get('q')||'';
+    var norm=function(s){return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();};
+    var qNorm=norm(query);
+    if(qNorm.length<2){res.writeHead(200,{'Content-Type':'application/json'});res.end(JSON.stringify({agents:[]}));return;}
+    var allA=[];
+    function fetchPage(cur){
+      var body={page_size:100};if(cur)body.start_cursor=cur;
+      notionRequest('POST','databases/'+AGENTS_DB+'/query',body).then(function(result){
+        (result.results||[]).forEach(function(p){
+          var nom=p.properties['Nom']&&p.properties['Nom'].title&&p.properties['Nom'].title[0]?p.properties['Nom'].title[0].plain_text:'';
+          if(nom&&norm(nom).indexOf(qNorm)>-1)allA.push({id:p.id,nom:nom});
+        });
+        if(result.has_more&&result.next_cursor&&allA.length<30){fetchPage(result.next_cursor);}
+        else{
+          allA.sort(function(a,b){return a.nom.localeCompare(b.nom);});
+          res.writeHead(200,{'Content-Type':'application/json'});res.end(JSON.stringify({agents:allA.slice(0,30)}));
+        }
+      }).catch(function(){res.writeHead(200,{'Content-Type':'application/json'});res.end(JSON.stringify({agents:allA}));});
+    }
+    fetchPage(null);
+    return;
+  }
+
   // ── POST /api/superviseur/validate ────────────────────────────────────────
   if(req.method==='POST'&&pathname==='/api/superviseur/validate'){
     var body='';req.on('data',function(c){body+=c;});req.on('end',function(){

@@ -186,6 +186,13 @@ canvas{width:100%;height:130px;display:block;background:#fff;border-radius:4px;t
         </div>
       </div>
 
+      <!-- SÉLECTION DE MISSION (si plusieurs sur le site) -->
+      <div class="field" id="mission-field" style="display:none">
+        <div class="field-label">Choisissez votre mission *</div>
+        <div class="alert warn" style="display:flex;">📋 Plusieurs missions sont actives sur ce site aujourd'hui. Sélectionnez la vôtre.</div>
+        <div class="homonyme-list" id="mission-list"></div>
+      </div>
+
       <!-- PRESTATION -->
       <div class="field" id="presta-field" style="display:none">
         <div class="field-label">Prestation détectée</div>
@@ -227,7 +234,7 @@ canvas{width:100%;height:130px;display:block;background:#fff;border-radius:4px;t
 <div class="overlay" id="overlay"><div class="spinner"></div><div class="overlay-msg" id="overlay-msg">Chargement...</div></div>
 
 <script>
-var S={type:'debut',siteId:null,siteName:null,siteGps:null,siteAgents:[],selectedAgent:null,prestation:null,sigDrawn:false,geo:null,verifyAttempts:0};
+var S={type:'debut',siteId:null,siteName:null,siteGps:null,siteAgents:[],sitePrestations:[],selectedAgent:null,prestation:null,sigDrawn:false,geo:null,verifyAttempts:0};
 var MAX_VERIFY = 3;
 
 function api(method,path,body){return fetch(path,{method:method,headers:{'Content-Type':'application/json'},body:body?JSON.stringify(body):undefined}).then(function(r){return r.json();});}
@@ -319,9 +326,14 @@ function loadSiteAgents(){
   var url=S.siteId?'/api/agents?site='+S.siteId:'/api/agents';
   api('GET',url,null).then(function(data){
     S.siteAgents=data.agents||[];
+    S.sitePrestations=data.prestations||[];
     S.siteGps=data.siteGps||null;
     if(S.siteGps&&S.geo)updateGeoDisplay();
-    if(S.siteId)document.getElementById('site-sub-display').textContent=S.siteAgents.length+' agents affectés';
+    if(S.siteId){
+      var msg=S.siteAgents.length+' agents affectés';
+      if(S.sitePrestations.length>1)msg+=' • '+S.sitePrestations.length+' missions actives';
+      document.getElementById('site-sub-display').textContent=msg;
+    }
   });
 }
 
@@ -439,7 +451,8 @@ function selectAgentFoundDirect(agent, horsPrestation){
   S.selectedAgent=agent;
   hideErr('nom-error');
   document.getElementById('homonyme-field').style.display='none';
-  if(!agent.prestationId && S.siteId)agent.aVerifier=true;
+  // Le statut aVerifier sera défini dans showPrestaAndSig ou selectMission
+  // selon si l'agent est affecté à la prestation sélectionnée
   // Vérifie si déjà pointé
   api('GET','/api/check?agentId='+agent.id+'&type='+S.type,null).then(function(data){
     if(data.alreadyPointed){
@@ -459,11 +472,59 @@ function selectAgentFoundDirect(agent, horsPrestation){
 }
 
 function showPrestaAndSig(agent){
-  if(agent.prestationId){
-    S.prestation={id:agent.prestationId,nom:agent.prestationNom};
-    document.getElementById('presta-name').textContent=agent.prestationNom||'Prestation du jour';
+  // Détermine les prestations possibles
+  var affectations=agent.affectations||[];
+  
+  // Cas 1 : Une seule prestation active sur le site → auto-sélection
+  if(S.sitePrestations.length===1){
+    S.prestation={id:S.sitePrestations[0].id,nom:S.sitePrestations[0].nom};
+    document.getElementById('presta-name').textContent=S.sitePrestations[0].nom;
     document.getElementById('presta-sub').textContent=S.siteName||'';
     document.getElementById('presta-field').style.display='flex';
+    // Marque à vérifier si l'agent n'est pas affecté à cette prestation
+    if(affectations.length===0)agent.aVerifier=true;
+    showSig();
+    return;
+  }
+  
+  // Cas 2 : Agent affecté à une seule prestation → auto-sélection
+  if(affectations.length===1){
+    S.prestation={id:affectations[0].prestationId,nom:affectations[0].prestationNom};
+    document.getElementById('presta-name').textContent=affectations[0].prestationNom;
+    document.getElementById('presta-sub').textContent=S.siteName||'';
+    document.getElementById('presta-field').style.display='flex';
+    showSig();
+    return;
+  }
+  
+  // Cas 3 : Plusieurs missions → affiche le sélecteur
+  if(S.sitePrestations.length>1){
+    var affIds=affectations.map(function(a){return a.prestationId;});
+    document.getElementById('mission-field').style.display='flex';
+    document.getElementById('mission-list').innerHTML=S.sitePrestations.map(function(pr){
+      var isAffected=affIds.indexOf(pr.id)>-1;
+      var badge=isAffected?'<span style="background:rgba(29,158,117,.15);color:#5DCAA5;border:1px solid rgba(29,158,117,.3);padding:2px 8px;border-radius:10px;font-size:10px;margin-left:6px;">✓ Affecté</span>':'';
+      return '<div class="homonyme-item" onclick=\'selectMission("'+pr.id+'","'+pr.nom.replace(/"/g,"\\\"")+'")\'>'+
+        '<div class="hom-avatar">📋</div>'+
+        '<div><div class="hom-name">'+pr.nom+badge+'</div></div></div>';
+    }).join('');
+    return;
+  }
+  
+  // Cas 4 : Aucune prestation active (rare)
+  showSig();
+}
+
+function selectMission(prestaId, prestaNom){
+  S.prestation={id:prestaId,nom:prestaNom};
+  document.getElementById('mission-field').style.display='none';
+  document.getElementById('presta-name').textContent=prestaNom;
+  document.getElementById('presta-sub').textContent=S.siteName||'';
+  document.getElementById('presta-field').style.display='flex';
+  // Si l'agent n'est pas affecté à cette prestation → à vérifier
+  if(S.selectedAgent){
+    var affIds=(S.selectedAgent.affectations||[]).map(function(a){return a.prestationId;});
+    if(affIds.indexOf(prestaId)===-1)S.selectedAgent.aVerifier=true;
   }
   showSig();
 }
@@ -536,7 +597,7 @@ function resetForm(){
   clearSig();
   document.getElementById('nom-input').value='';
   document.getElementById('dob-input').value='';
-  ['verify-field','sig-field','btn-submit','presta-field','homonyme-field'].forEach(function(id){document.getElementById(id).style.display='none';});
+  ['verify-field','sig-field','btn-submit','presta-field','homonyme-field','mission-field'].forEach(function(id){document.getElementById(id).style.display='none';});
   ['nom-error','check-alert','verify-error','sig-alert'].forEach(function(id){document.getElementById(id).className='alert danger';});
   document.getElementById('btn-bypass').style.display='none';
   selectType('debut');showScreen('screen-form');

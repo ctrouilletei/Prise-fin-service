@@ -166,13 +166,28 @@ var server = http.createServer(function(req, res) {
         var sp=results[0].properties||{};
         var siteGps=(sp['GPS Latitude']&&sp['GPS Latitude'].number&&sp['GPS Longitude']&&sp['GPS Longitude'].number)?{lat:sp['GPS Latitude'].number,lng:sp['GPS Longitude'].number,rayon:sp['Rayon autorisé (m)']&&sp['Rayon autorisé (m)'].number||500}:null;
         var prestas=(results[1].results||[]).filter(function(p){var d=p.properties['Période de prestation']&&p.properties['Période de prestation'].date;if(!d||!d.start)return false;var s=d.start.split('T')[0],e=d.end?d.end.split('T')[0]:s;return s<=today&&today<=e;});
-        if(!prestas.length){res.writeHead(200,{'Content-Type':'application/json'});res.end(JSON.stringify({agents:[],siteGps:siteGps,message:'Aucune prestation active'}));return;}
-        var agentMap={};prestas.forEach(function(pr){var rel=pr.properties['Agents']&&pr.properties['Agents'].relation?pr.properties['Agents'].relation:[];var nom=pr.properties['Nom']&&pr.properties['Nom'].title&&pr.properties['Nom'].title[0]?pr.properties['Nom'].title[0].plain_text:'';rel.forEach(function(a){agentMap[a.id]={prestationId:pr.id,prestationNom:nom};});});
-        var ids=Object.keys(agentMap);if(!ids.length){res.writeHead(200,{'Content-Type':'application/json'});res.end(JSON.stringify({agents:[],siteGps:siteGps}));return;}
+        if(!prestas.length){res.writeHead(200,{'Content-Type':'application/json'});res.end(JSON.stringify({agents:[],prestations:[],siteGps:siteGps,message:'Aucune prestation active'}));return;}
+        // Liste des prestations pour la sélection côté agent
+        var prestationsList=prestas.map(function(pr){
+          var nom=pr.properties['Nom']&&pr.properties['Nom'].title&&pr.properties['Nom'].title[0]?pr.properties['Nom'].title[0].plain_text:'';
+          return {id:pr.id,nom:nom};
+        });
+        // Map: agentId → [prestations auxquelles l'agent est affecté]
+        var agentPrestas={};
+        prestas.forEach(function(pr){
+          var rel=pr.properties['Agents']&&pr.properties['Agents'].relation?pr.properties['Agents'].relation:[];
+          var nom=pr.properties['Nom']&&pr.properties['Nom'].title&&pr.properties['Nom'].title[0]?pr.properties['Nom'].title[0].plain_text:'';
+          rel.forEach(function(a){
+            if(!agentPrestas[a.id])agentPrestas[a.id]=[];
+            agentPrestas[a.id].push({prestationId:pr.id,prestationNom:nom});
+          });
+        });
+        var ids=Object.keys(agentPrestas);
+        if(!ids.length){res.writeHead(200,{'Content-Type':'application/json'});res.end(JSON.stringify({agents:[],prestations:prestationsList,siteGps:siteGps}));return;}
         var batches=[],i;for(i=0;i<ids.length;i+=10)batches.push(ids.slice(i,i+10));
         var all=[],done=0;
-        batches.forEach(function(batch){Promise.all(batch.map(function(id){return notionRequest('GET','pages/'+id,null);})).then(function(pages){pages.forEach(function(p){if(!p||!p.properties)return;var nom=p.properties['Nom']&&p.properties['Nom'].title&&p.properties['Nom'].title[0]?p.properties['Nom'].title[0].plain_text:'';if(!nom)return;var cp=p.properties['Carte Pro']&&p.properties['Carte Pro'].rich_text&&p.properties['Carte Pro'].rich_text[0]?p.properties['Carte Pro'].rich_text[0].plain_text:'';var dn=p.properties['Date de naissance']&&p.properties['Date de naissance'].date?p.properties['Date de naissance'].date.start:'';var pr=agentMap[p.id]||{};all.push({id:p.id,nom:nom,cartePro:cp,dateNaissance:dn,prestationId:pr.prestationId,prestationNom:pr.prestationNom});});done++;if(done===batches.length){all.sort(function(a,b){return a.nom.localeCompare(b.nom);});res.writeHead(200,{'Content-Type':'application/json'});res.end(JSON.stringify({agents:all,siteGps:siteGps}));}}).catch(function(){done++;if(done===batches.length){res.writeHead(200,{'Content-Type':'application/json'});res.end(JSON.stringify({agents:all,siteGps:siteGps}));}});});
-      }).catch(function(e){res.writeHead(500,{'Content-Type':'application/json'});res.end(JSON.stringify({error:e.message,agents:[]}));});
+        batches.forEach(function(batch){Promise.all(batch.map(function(id){return notionRequest('GET','pages/'+id,null);})).then(function(pages){pages.forEach(function(p){if(!p||!p.properties)return;var nom=p.properties['Nom']&&p.properties['Nom'].title&&p.properties['Nom'].title[0]?p.properties['Nom'].title[0].plain_text:'';if(!nom)return;var cp=p.properties['Carte Pro']&&p.properties['Carte Pro'].rich_text&&p.properties['Carte Pro'].rich_text[0]?p.properties['Carte Pro'].rich_text[0].plain_text:'';var dn=p.properties['Date de naissance']&&p.properties['Date de naissance'].date?p.properties['Date de naissance'].date.start:'';var affectations=agentPrestas[p.id]||[];all.push({id:p.id,nom:nom,cartePro:cp,dateNaissance:dn,affectations:affectations});});done++;if(done===batches.length){all.sort(function(a,b){return a.nom.localeCompare(b.nom);});res.writeHead(200,{'Content-Type':'application/json'});res.end(JSON.stringify({agents:all,prestations:prestationsList,siteGps:siteGps}));}}).catch(function(){done++;if(done===batches.length){res.writeHead(200,{'Content-Type':'application/json'});res.end(JSON.stringify({agents:all,prestations:prestationsList,siteGps:siteGps}));}});});
+      }).catch(function(e){res.writeHead(500,{'Content-Type':'application/json'});res.end(JSON.stringify({error:e.message,agents:[],prestations:[]}));});
     } else {
       var all=[];function fetchPage(cur){var body={page_size:100};if(cur)body.start_cursor=cur;notionRequest('POST','databases/'+AGENTS_DB+'/query',body).then(function(result){(result.results||[]).forEach(function(p){var nom=p.properties['Nom']&&p.properties['Nom'].title&&p.properties['Nom'].title[0]?p.properties['Nom'].title[0].plain_text:'';if(nom)all.push({id:p.id,nom:nom});});if(result.has_more&&result.next_cursor){fetchPage(result.next_cursor);}else{all.sort(function(a,b){return a.nom.localeCompare(b.nom);});res.writeHead(200,{'Content-Type':'application/json'});res.end(JSON.stringify({agents:all,siteGps:null}));}}).catch(function(e){res.writeHead(500,{'Content-Type':'application/json'});res.end(JSON.stringify({error:e.message,agents:[]}));});}
       fetchPage(null);
